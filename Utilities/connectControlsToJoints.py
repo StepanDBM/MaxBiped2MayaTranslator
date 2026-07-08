@@ -1,4 +1,8 @@
 import maya.cmds as cmds
+import Utilities.genUtils as genUtils
+import importlib
+
+importlib.reload(genUtils)
 
 def joint_scale_is_writable(joint):
     """
@@ -237,8 +241,12 @@ def connect_fk_controls_to_joints(
                         joint
                     )
                 )
-
-        print("Connected ctrl -> joint: {} -> {}".format(ctrl, joint))
+        print(
+            "Connected ctrl -> joint: {} -> {}".format(
+                genUtils.pretty_node_name(ctrl),
+                genUtils.pretty_node_name(joint)
+            )
+        )
 
     print("=" * 80)
     print("CONTROL TO JOINT CONNECTION COMPLETE")

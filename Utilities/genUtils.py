@@ -17,6 +17,55 @@ def clean_name(name):
 
     return name
 
+import re
+import maya.cmds as cmds
+
+
+def clean_name(name):
+    """
+    Converts Maya/FBX ugly names into clean readable names.
+
+    Example:
+        |Bip001|Bip001FBXASC032LFBXASC032Hand
+        ->
+        Bip001_L_Hand
+    """
+
+    name = name.split("|")[-1]
+
+    name = re.sub(
+        r"FBXASC032",
+        "_",
+        name,
+        flags=re.IGNORECASE
+    )
+
+    name = re.sub(
+        r"FBXASC095",
+        "_",
+        name,
+        flags=re.IGNORECASE
+    )
+
+    while "__" in name:
+        name = name.replace("__", "_")
+
+    return name.strip("_")
+
+
+def pretty_node_name(node):
+    """
+    Safe display name for logs.
+    Keeps scene nodes untouched.
+    Only prettifies the printed output.
+    """
+
+    if not node:
+        return "None"
+
+    return clean_name(node)
+
+
 def ensure_group(name, parent=None):
     """
     Creates a group if it does not exist.

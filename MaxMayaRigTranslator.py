@@ -58,7 +58,7 @@ def main():
         char,
         rig,
         remove_existing_joint_keys=True,
-        create_scale_constraints=True,
+        create_scale_constraints=False,
         maintain_offset=False
     )
 

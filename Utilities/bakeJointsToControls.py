@@ -66,8 +66,8 @@ def bake_joints_to_fk_controls(
     Target:
         FK controls
 
-    This does NOT make controls drive the joints yet.
-    It only copies/bakes animation to the controls.
+    This does NOT make controls drive the joints yet, only
+    copies/bakes animation to the controls.
     """
 
     if start is None:
@@ -85,10 +85,12 @@ def bake_joints_to_fk_controls(
     start = int(start)
     end = int(end)
 
+    """
     print("=" * 80)
     print("BAKING JOINT ANIMATION TO FK CONTROLS")
     print("Frame range: {} -> {}".format(start, end))
     print("=" * 80)
+    """
 
     tmp_constraints = []
     baked_ctrls = []
