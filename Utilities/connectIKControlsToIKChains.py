@@ -7,22 +7,73 @@ importlib.reload(genUtils)
 importlib.reload(bipedConfig)
 
 # HELPERS
-def get_dict_value(data, *keys):
+def connect_IK_chain_base_to_parent(
+    limb_name,
+    IK_root,
+    rig,
+    maintain_offset=True
+):
     """
-    Safely gets the first existing key from a dictionary.
+    Makes the base/root of the IK chain follow the appropriate core FK control.
 
-    This lets us support both:
-        "IK_ctrl"
-        "IK_ctrl"
-
-    while the naming is still evolving.
+    Example:
+        l_arm IK root follows l_clavicle FK ctrl
+        l_leg IK root follows pelvis FK ctrl
     """
 
-    for key in keys:
-        if key in data:
-            return data[key]
+    if limb_name not in bipedConfig.IK_BASE_PARENT_SLOTS:
+        cmds.warning(
+            "No IK base parent slot configured for {}".format(
+                limb_name
+            )
+        )
+        return None
 
-    return None
+    parent_slot = bipedConfig.IK_BASE_PARENT_SLOTS[limb_name]
+
+    if parent_slot not in rig:
+        cmds.warning(
+            "Cannot connect IK base for {}: missing parent slot {}".format(
+                limb_name,
+                parent_slot
+            )
+        )
+        return None
+
+    parent_ctrl = rig[parent_slot].get("ctrl")
+
+    if not parent_ctrl:
+        cmds.warning(
+            "Cannot connect IK base for {}: missing parent ctrl for {}".format(
+                limb_name,
+                parent_slot
+            )
+        )
+        return None
+
+    parent_ctrl = genUtils.resolve_node(parent_ctrl)
+    IK_root = genUtils.resolve_node(IK_root)
+
+    constraint_name = limb_name + "_IK_base_parentConstraint"
+
+    if cmds.objExists(constraint_name):
+        cmds.delete(constraint_name)
+
+    constraint = cmds.parentConstraint(
+        parent_ctrl,
+        IK_root,
+        mo=maintain_offset,
+        n=constraint_name
+    )[0]
+
+    print(
+        "Connected IK chain base -> parent ctrl: {} -> {}".format(
+            genUtils.pretty_node_name(parent_ctrl),
+            genUtils.pretty_node_name(IK_root)
+        )
+    )
+
+    return constraint
 
 def set_joint_preferred_angle(joint, angles):
     """
@@ -85,14 +136,9 @@ def apply_IK_preferred_angle(limb_name, IK_chain):
         )
         return
 
-    mid_joint = genUtils.resolve_node(
-        IK_chain[1]
-    )
+    mid_joint = genUtils.resolve_node(IK_chain[1])
 
-    set_joint_preferred_angle(
-        mid_joint,
-        angles
-    )
+    set_joint_preferred_angle(mid_joint, angles)
 
     print(
         "Set IK preferred angle: {} -> {}".format(
@@ -192,11 +238,7 @@ def get_IK_ctrl_from_data(limb_IK_data):
         limb_IK_data["IK_ctrl"]["ctrl"]
     """
 
-    IK_ctrl_data = get_dict_value(
-        limb_IK_data,
-        "IK_ctrl",
-        "IK_ctrl"
-    )
+    IK_ctrl_data = limb_IK_data["IK_ctrl"]
 
     if not IK_ctrl_data:
         return None
@@ -209,11 +251,7 @@ def get_pv_ctrl_from_data(limb_IK_data):
     Extracts pole vector ctrl from IK data.
     """
 
-    pv_ctrl_data = get_dict_value(
-        limb_IK_data,
-        "pv_ctrl",
-        "PV_ctrl"
-    )
+    pv_ctrl_data = limb_IK_data["pv_ctrl"]
 
     if not pv_ctrl_data:
         return None
@@ -225,6 +263,7 @@ def get_pv_ctrl_from_data(limb_IK_data):
 def connect_IK_controls_to_IK_chains(
     IK_data,
     chain_data,
+    rig,
     delete_existing=True,
     maintain_offset=False
 ):
@@ -319,6 +358,13 @@ def connect_IK_controls_to_IK_chains(
         unlock_transform_attrs(IK_mid)
         unlock_transform_attrs(IK_end)
 
+        IK_base_constraint = connect_IK_chain_base_to_parent(
+            limb_name,
+            IK_root,
+            rig,
+            maintain_offset=True
+        )
+
         limb_system_grp = ensure_group(
             limb_name + "_IK_system_grp",
             parent=IK_systems_grp
@@ -396,6 +442,7 @@ def connect_IK_controls_to_IK_chains(
             "IK_parent_constraint": IK_parent_constraint,
             "pv_constraint": pv_constraint,
             "end_orient_constraint": end_orient_constraint,
+            "IK_base_constraint": IK_base_constraint,
             "IK_ctrl": IK_ctrl,
             "pv_ctrl": pv_ctrl,
             "IK_chain": IK_chain,

@@ -317,6 +317,13 @@ IK_PREFERRED_ANGLES = {
     },
 }
 
+IK_BASE_PARENT_SLOTS = {
+    "l_arm": "l_clavicle",
+    "r_arm": "r_clavicle",
+    "l_leg": "pelvis",
+    "r_leg": "pelvis",
+}
+
 # HELPER FUNCTIONS
 
 def get_family_key_for_slot(slot):

@@ -3,14 +3,195 @@ import importlib
 
 import Utilities.genUtils as genUtils
 from Utilities.Config import bipedConfig
+from Creators import ctrlAesthetics as ctrlAes
 
 importlib.reload(genUtils)
 importlib.reload(bipedConfig)
+importlib.reload(ctrlAes)
 
 
 # --------------------------------------------------
 # HELPERS
 # --------------------------------------------------
+def create_FKIK_switch_ctrl(limb_name, char, slots, radius=6):
+    """
+    Creates a green circular FKIK switch controller for one limb.
+
+    The control is placed near the limb end joint.
+    """
+
+    end_slot = slots[-1]
+    end_joint = char.get(end_slot)
+
+    if not end_joint:
+        cmds.warning(
+            "Could not create FKIK switch ctrl for {}: missing end joint.".format(
+                limb_name
+            )
+        )
+        return None
+
+    end_joint = genUtils.resolve_node(end_joint)
+
+    ctrl_name = limb_name + "_FKIK_ctrl"
+    ofs_name = limb_name + "_FKIK_ctrl_ofs"
+    aut_name = limb_name + "_FKIK_ctrl_aut"
+
+    if cmds.objExists(ofs_name):
+        cmds.delete(ofs_name)
+
+    if cmds.objExists(ctrl_name):
+        cmds.delete(ctrl_name)
+
+    ctrl = cmds.circle(
+        n=ctrl_name,
+        nr=(0, 1, 0),
+        r=radius
+    )[0]
+
+    ofs = cmds.group(em=True, n=ofs_name)
+
+    aut = cmds.group(em=True, n=aut_name)
+
+    aut = cmds.parent(aut, ofs)[0]
+
+    ctrl = cmds.parent(ctrl, aut)[0]
+
+    # Snap to end joint
+    tmp = cmds.parentConstraint(
+        end_joint,
+        ofs,
+        mo=False
+    )
+
+    cmds.delete(tmp)
+
+    # Offset slightly upward
+    current_pos = cmds.xform(
+        ofs,
+        q=True,
+        ws=True,
+        t=True
+    )
+
+    cmds.xform(
+        ofs,
+        ws=True,
+        t=[
+            current_pos[0],
+            current_pos[1] + 15,
+            current_pos[2]
+        ]
+    )
+
+    ctrl_grp = genUtils.ensure_group(
+        bipedConfig.MAIN_GROUPS["ctrl"]
+    )
+
+    FKIK_ctrls_grp = genUtils.ensure_group(
+        "FKIK_ctrls_grp",
+        parent=ctrl_grp
+    )
+
+    try:
+        cmds.parent(ofs, FKIK_ctrls_grp)
+    except Exception:
+        pass
+
+    # Green FKIK switch color
+    ctrlAes.set_object_color(
+        ctrl,
+        viewport_rgb=(0.0, 1.0, 0.2),
+        outliner_rgb=(0.0, 1.0, 0.2)
+    )
+
+    return {
+        "ctrl": ctrl_name,
+        "ofs": ofs_name,
+        "aut": aut_name
+    }
+
+def connect_visibility_to_FKIK(
+    limb_name,
+    rig,
+    IK_data,
+    slots,
+    blend_attr,
+    reverse_node
+):
+    """
+    Connects FKIK blend to FK and IK visibility.
+
+    FKIK_blend = 0:
+        FK visible
+        IK hidden
+
+    FKIK_blend = 1:
+        FK hidden
+        IK visible
+    """
+
+    # FK controls visibility = reverse.outputX
+    for slot in slots:
+
+        if slot not in rig:
+            continue
+
+        FK_ctrl = rig[slot].get("ctrl")
+
+        if not FK_ctrl:
+            continue
+
+        FK_ctrl = genUtils.resolve_node(FK_ctrl)
+
+        try:
+            cmds.connectAttr(
+                reverse_node + ".outputX",
+                FK_ctrl + ".visibility",
+                force=True
+            )
+        except Exception as e:
+            cmds.warning(
+                "Could not connect FK visibility for {}: {}".format(
+                    FK_ctrl,
+                    e
+                )
+            )
+
+    # IK controls visibility = FKIK_blend
+    if limb_name not in IK_data:
+        return
+
+    limb_IK_data = IK_data[limb_name]
+
+    IK_ctrl_data = limb_IK_data.get("IK_ctrl")
+    pv_ctrl_data = limb_IK_data.get("pv_ctrl")
+
+    IK_ctrls = []
+
+    if IK_ctrl_data and IK_ctrl_data.get("ctrl"):
+        IK_ctrls.append(IK_ctrl_data["ctrl"])
+
+    if pv_ctrl_data and pv_ctrl_data.get("ctrl"):
+        IK_ctrls.append(pv_ctrl_data["ctrl"])
+
+    for IK_ctrl in IK_ctrls:
+
+        IK_ctrl = genUtils.resolve_node(IK_ctrl)
+
+        try:
+            cmds.connectAttr(
+                blend_attr,
+                IK_ctrl + ".visibility",
+                force=True
+            )
+        except Exception as e:
+            cmds.warning(
+                "Could not connect IK visibility for {}: {}".format(
+                    IK_ctrl,
+                    e
+                )
+            )
 
 def unlock_transform_attrs(obj):
     """
@@ -96,22 +277,21 @@ def add_FKIK_blend_attr(ctrl, attr_name="FKIK_blend", default_value=0.0):
     return ctrl + "." + attr_name
 
 
-def get_limb_switch_ctrl(limb_name, IK_data):
+def get_limb_switch_ctrl(limb_name, char, slots):
     """
-    Uses the limb IK control as the FK/IK switch holder.
+    Creates and returns the dedicated FKIK switch control.
     """
 
-    if limb_name not in IK_data:
-        return None
+    switch_data = create_FKIK_switch_ctrl(
+        limb_name,
+        char,
+        slots
+    )
 
-    limb_IK_data = IK_data[limb_name]
+    if not switch_data:
+        return None, None
 
-    IK_ctrl_data = limb_IK_data.get("IK_ctrl")
-
-    if not IK_ctrl_data:
-        return None
-
-    return IK_ctrl_data.get("ctrl")
+    return switch_data
 
 
 def create_reverse_node(name, input_attr):
@@ -144,6 +324,7 @@ def connect_FKIK_chains_to_original(
     char,
     chain_data,
     IK_data,
+    rig,
     delete_existing=True,
     maintain_offset=False,
     attr_name="FKIK_blend"
@@ -200,14 +381,15 @@ def connect_FKIK_chains_to_original(
             )
             continue
 
-        switch_ctrl = get_limb_switch_ctrl(
+        switch_ctrl_data = get_limb_switch_ctrl(
             limb_name,
-            IK_data
+            char,
+            slots
         )
-
+        switch_ctrl = switch_ctrl_data["ctrl"]
         if not switch_ctrl:
             cmds.warning(
-                "Skipping {}: missing IK switch ctrl.".format(
+                "Skipping {}: could not create FKIK switch ctrl.".format(
                     limb_name
                 )
             )
@@ -226,6 +408,14 @@ def connect_FKIK_chains_to_original(
         reverse_node = create_reverse_node(
             limb_name + "_FKIK_reverse",
             blend_attr
+        )
+        connect_visibility_to_FKIK(
+            limb_name,
+            rig,
+            IK_data,
+            slots,
+            blend_attr,
+            reverse_node
         )
 
         limb_constraints = []
@@ -319,7 +509,7 @@ def connect_FKIK_chains_to_original(
         }
 
     print("=" * 80)
-    print("FK/IK CHAIN TO ORIGINAL CONNECTION COMPLETE")
+    print("FK/IK CHAIN BLEND TO ORIGINAL CONNECTION COMPLETE")
     print("Created FK/IK systems for {} limbs.".format(len(result)))
     print("=" * 80)
 

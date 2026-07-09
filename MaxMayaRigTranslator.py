@@ -119,6 +119,7 @@ def main():
     ik_chain_connections = connectIKControlsToIKChains.connect_IK_controls_to_IK_chains(
         ik_data,
         chain_data,
+        rig,
         delete_existing=True,
         maintain_offset=False
     )
@@ -126,6 +127,20 @@ def main():
         char
     )
     fk_chain_constraints = conectFKControlsToFKChains.connect_FK_controls_to_FK_driver_chains(rig)
+    print("\n")
+    print("=" * 80)
+    print("STEP 9 - CONNECTING FK/IK CHAINS TO ORIGINAL SKELETON")
+    print("=" * 80)
+
+    FKIK_blend_connections = connectFKIKblendToOriginal.connect_FKIK_chains_to_original(
+        char,
+        chain_data,
+        ik_data,
+        rig,
+        delete_existing=True,
+        maintain_offset=False,
+        attr_name="FKIK_blend"
+    )
 
     print("\n")
     print("=" * 80)
@@ -141,7 +156,8 @@ def main():
         "fk_chain_constraints": fk_chain_constraints,
         "ik_data": ik_data,
         "ik_bake_data": ik_bake_data,
-        "ik_chain_connections": ik_chain_connections
+        "ik_chain_connections": ik_chain_connections,
+        "FKIK_blend_connections": FKIK_blend_connections
     }
 
 result = main()
