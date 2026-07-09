@@ -235,7 +235,6 @@ def connect_fk_controls_to_joints(
                 constraints.append(sc)
 
             else:
-
                 cmds.warning(
                     "Skipping scaleConstraint for {} because scale attrs are not writable.".format(
                         joint

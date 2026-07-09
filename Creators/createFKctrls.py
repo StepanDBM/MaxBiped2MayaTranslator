@@ -15,9 +15,9 @@ def create_ctrl_for_joint(joint):
 
     clean = genUtils.clean_name(joint)
 
-    ctrl_name = clean + "_ctrl"
-    ofs_name = clean + "_ctrl_ofs"
-    aut_name = clean + "_ctrl_aut"
+    ctrl_name = clean + "_FK_ctrl"
+    ofs_name = clean + "_FK_ctrl_ofs"
+    aut_name = clean + "_FK_ctrl_aut"
 
     # Clean previous test objects if they exist
     if cmds.objExists(ofs_name):
@@ -170,29 +170,29 @@ def buildFKRig(char):
     fk_links = bipedConfig.FK_LINKS
     # FAMILY GROUPS
 
-    family_root_grp = genUtils.ensure_group(
-        "family_ctrls_grp",
+    family_FK_root_grp = genUtils.ensure_group(
+        "FK_ctrls_grp",
         parent=ctrl_grp
     )
 
-    family_groups = {
-        "c_spine_ctrls_grp": genUtils.ensure_group("c_spine_ctrls_grp", family_root_grp),
-        "l_arm_ctrls_grp": genUtils.ensure_group("l_arm_ctrls_grp", family_root_grp),
-        "r_arm_ctrls_grp": genUtils.ensure_group("r_arm_ctrls_grp", family_root_grp),
-        "l_leg_ctrls_grp": genUtils.ensure_group("l_leg_ctrls_grp", family_root_grp),
-        "r_leg_ctrls_grp": genUtils.ensure_group("r_leg_ctrls_grp", family_root_grp),
-        "misc_ctrls_grp": genUtils.ensure_group("misc_ctrls_grp", family_root_grp),
+    family_FK_groups = {
+        "c_spine_FK_ctrls_grp": genUtils.ensure_group("c_spine_FK_ctrls_grp", family_FK_root_grp),
+        "l_arm_FK_ctrls_grp": genUtils.ensure_group("l_arm_FK_ctrls_grp", family_FK_root_grp),
+        "r_arm_FK_ctrls_grp": genUtils.ensure_group("r_arm_FK_ctrls_grp", family_FK_root_grp),
+        "l_leg_FK_ctrls_grp": genUtils.ensure_group("l_leg_FK_ctrls_grp", family_FK_root_grp),
+        "r_leg_FK_ctrls_grp": genUtils.ensure_group("r_leg_FK_ctrls_grp", family_FK_root_grp),
+        "misc_FK_ctrls_grp": genUtils.ensure_group("misc_FK_ctrls_grp", family_FK_root_grp),
     }
 
     # Parent every control OFS under its family group.
     # Controls remain structurally flat.
     for slot, data in rig.items():
 
-        family_grp_name = bipedConfig.get_family_for_slot(slot)
+        family_FK_grp_name = bipedConfig.get_family_for_slot(slot)
 
-        family_grp = family_groups.get(
-            family_grp_name,
-            family_groups["misc_ctrls_grp"]
+        family_FK_grp = family_FK_groups.get(
+            family_FK_grp_name,
+            family_FK_groups["misc_FK_ctrls_grp"]
         )
 
         try:
@@ -202,18 +202,18 @@ def buildFKRig(char):
 
             cmds.parent(
                 ofs,
-                family_grp
+                family_FK_grp
             )
         except Exception:
             pass
     # FK BEHAVIOR THROUGH CONSTRAINTS
     fk_constraints = create_fk_constraints(rig,fk_links)
 
-    ctrl_count = len([
+    FK_ctrl_count = len([
         key for key in rig.keys()
         if not key.startswith("_")
     ])
 
-    print("Created {} FK controls.".format(ctrl_count))
+    print("Created {} FK controls.".format(FK_ctrl_count))
 
     return rig

@@ -5,12 +5,12 @@
 MAIN_GROUPS = {
     "ctrl": "ctrl_grp",
     "family_ctrls": "family_ctrls_grp",
-    "ik_ctrls": "ik_ctrls_grp",
+    "IK_ctrls": "IK_ctrls_grp",
     "rig": "rig_grp",
     "chains": "chains_grp",
-    "fk_chains": "fk_chains_grp",
-    "ik_chains": "ik_chains_grp",
-    "fkik_chains": "fkik_chains_grp",
+    "FK_chains": "FK_chains_grp",
+    "IK_chains": "IK_chains_grp",
+    "FKIK_chains": "FKIK_chains_grp",
 }
 
 
@@ -86,7 +86,7 @@ FK_LINKS = [
 
 CONTROL_FAMILIES = {
     "c_spine": {
-        "group": "c_spine_ctrls_grp",
+        "group": "c_spine_FK_ctrls_grp",
         "slots": [
             "pelvis",
             "spine",
@@ -98,7 +98,7 @@ CONTROL_FAMILIES = {
     },
 
     "l_arm": {
-        "group": "l_arm_ctrls_grp",
+        "group": "l_arm_FK_ctrls_grp",
         "slots": [
             "l_clavicle",
             "l_upperarm",
@@ -108,7 +108,7 @@ CONTROL_FAMILIES = {
     },
 
     "r_arm": {
-        "group": "r_arm_ctrls_grp",
+        "group": "r_arm_FK_ctrls_grp",
         "slots": [
             "r_clavicle",
             "r_upperarm",
@@ -118,7 +118,7 @@ CONTROL_FAMILIES = {
     },
 
     "l_leg": {
-        "group": "l_leg_ctrls_grp",
+        "group": "l_leg_FK_ctrls_grp",
         "slots": [
             "l_thigh",
             "l_calf",
@@ -127,7 +127,7 @@ CONTROL_FAMILIES = {
     },
 
     "r_leg": {
-        "group": "r_leg_ctrls_grp",
+        "group": "r_leg_FK_ctrls_grp",
         "slots": [
             "r_thigh",
             "r_calf",
@@ -136,7 +136,7 @@ CONTROL_FAMILIES = {
     },
 
     "misc": {
-        "group": "misc_ctrls_grp",
+        "group": "misc_FK_ctrls_grp",
         "slots": [],
     },
 }
@@ -157,7 +157,7 @@ IK_LIMBS = {
             "l_hand",
         ],
         "name": "bip001_l_arm",
-        "ik_group": "l_arm_ik_ctrls_grp",
+        "IK_group": "l_arm_IK_ctrls_grp",
     },
 
     "r_arm": {
@@ -172,7 +172,7 @@ IK_LIMBS = {
             "r_hand",
         ],
         "name": "bip001_r_arm",
-        "ik_group": "r_arm_ik_ctrls_grp",
+        "IK_group": "r_arm_IK_ctrls_grp",
     },
 
     "l_leg": {
@@ -187,7 +187,7 @@ IK_LIMBS = {
             "l_foot",
         ],
         "name": "bip001_l_leg",
-        "ik_group": "l_leg_ik_ctrls_grp",
+        "IK_group": "l_leg_IK_ctrls_grp",
     },
 
     "r_leg": {
@@ -202,7 +202,7 @@ IK_LIMBS = {
             "r_foot",
         ],
         "name": "bip001_r_leg",
-        "ik_group": "r_leg_ik_ctrls_grp",
+        "IK_group": "r_leg_IK_ctrls_grp",
     },
 }
 
@@ -216,10 +216,10 @@ FKIK_LIMBS = {
             "l_forearm",
             "l_hand",
         ],
-        "ik_data": "l_arm",
-        "fk_chain_group": "l_arm_fk_chain_grp",
-        "ik_chain_group": "l_arm_ik_chain_grp",
-        "fkik_group": "l_arm_fkik_grp",
+        "IK_data": "l_arm",
+        "FK_chain_group": "l_arm_FK_chain_grp",
+        "IK_chain_group": "l_arm_IK_chain_grp",
+        "FKIK_group": "l_arm_FKIK_grp",
     },
 
     "r_arm": {
@@ -228,10 +228,10 @@ FKIK_LIMBS = {
             "r_forearm",
             "r_hand",
         ],
-        "ik_data": "r_arm",
-        "fk_chain_group": "r_arm_fk_chain_grp",
-        "ik_chain_group": "r_arm_ik_chain_grp",
-        "fkik_group": "r_arm_fkik_grp",
+        "IK_data": "r_arm",
+        "FK_chain_group": "r_arm_FK_chain_grp",
+        "IK_chain_group": "r_arm_IK_chain_grp",
+        "FKIK_group": "r_arm_FKIK_grp",
     },
 
     "l_leg": {
@@ -240,10 +240,10 @@ FKIK_LIMBS = {
             "l_calf",
             "l_foot",
         ],
-        "ik_data": "l_leg",
-        "fk_chain_group": "l_leg_fk_chain_grp",
-        "ik_chain_group": "l_leg_ik_chain_grp",
-        "fkik_group": "l_leg_fkik_grp",
+        "IK_data": "l_leg",
+        "FK_chain_group": "l_leg_FK_chain_grp",
+        "IK_chain_group": "l_leg_IK_chain_grp",
+        "FKIK_group": "l_leg_FKIK_grp",
     },
 
     "r_leg": {
@@ -252,10 +252,10 @@ FKIK_LIMBS = {
             "r_calf",
             "r_foot",
         ],
-        "ik_data": "r_leg",
-        "fk_chain_group": "r_leg_fk_chain_grp",
-        "ik_chain_group": "r_leg_ik_chain_grp",
-        "fkik_group": "r_leg_fkik_grp",
+        "IK_data": "r_leg",
+        "FK_chain_group": "r_leg_FK_chain_grp",
+        "IK_chain_group": "r_leg_IK_chain_grp",
+        "FKIK_group": "r_leg_FKIK_grp",
     },
 }
 
@@ -302,12 +302,12 @@ def get_all_family_groups():
     ]
 
 
-def get_all_ik_groups():
+def get_all_IK_groups():
     """
     Returns all IK control group names.
     """
 
     return [
-        data["ik_group"]
+        data["IK_group"]
         for data in IK_LIMBS.values()
     ]

@@ -10,13 +10,16 @@ if PROJECT_ROOT not in sys.path:
 # IMPORTS
 
 from Inputs import bipedScanner
+from Creators import createFKIKchains
 from Creators import createFKctrls
 from Utilities import bakeJointsToControls
 from Utilities import connectControlsToJoints
 from Creators import createIKctrls
 from Utilities import bakeFKtoIKctrls
 
+
 importlib.reload(bipedScanner)
+importlib.reload(createFKIKchains)
 importlib.reload(createFKctrls)
 importlib.reload(bakeJointsToControls)
 importlib.reload(connectControlsToJoints)
@@ -34,7 +37,18 @@ def main():
 
     print("\n")
     print("=" * 80)
-    print("STEP 2 - BUILDING FK CONTROLS")
+    print("STEP 2 - CREATING FK/IK DRIVER CHAINS")
+    print("=" * 80)
+
+    chain_data = createFKIKchains.create_FKIK_driver_chains(
+        char,
+        delete_existing=True,
+        build_at_frame=char.get("startFrame")
+    )
+
+    print("\n")
+    print("=" * 80)
+    print("STEP 3 - BUILDING FK CONTROLS")
     print("=" * 80)
 
     rig = createFKctrls.buildFKRig(char)
@@ -67,7 +81,7 @@ def main():
     print("STEP 6 - CREATING IK CONTROLS")
     print("=" * 80)
 
-    ik_data = createIKctrls.create_ik_controls(
+    ik_data = createIKctrls.create_IK_controls(
         char,
         rig
     )
@@ -77,7 +91,7 @@ def main():
     print("STEP 7 - BAKING FK MOTION TO IK CONTROLS")
     print("=" * 80)
 
-    ik_bake_data = bakeFKtoIKctrls.bake_fk_to_ik_controls(
+    ik_bake_data = bakeFKtoIKctrls.bake_FK_to_IK_controls(
         char,
         rig,
         ik_data
