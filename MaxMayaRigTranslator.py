@@ -12,6 +12,7 @@ if PROJECT_ROOT not in sys.path:
 from Inputs import bipedScanner
 from Creators import createFKIKchains
 from Creators import createFKctrls
+from Utilities import conectFKControlsToFKChains
 from Utilities import bakeJointsToControls
 from Utilities import connectControlsToJoints
 from Creators import createIKctrls
@@ -23,6 +24,7 @@ importlib.reload(createFKIKchains)
 importlib.reload(createFKctrls)
 importlib.reload(bakeJointsToControls)
 importlib.reload(connectControlsToJoints)
+importlib.reload(conectFKControlsToFKChains)
 importlib.reload(createIKctrls)
 importlib.reload(bakeFKtoIKctrls)
 
@@ -46,12 +48,17 @@ def main():
         build_at_frame=char.get("startFrame")
     )
 
+    fk_driver_map = createFKIKchains.build_FK_driver_slot_map(chain_data)
+
     print("\n")
     print("=" * 80)
     print("STEP 3 - BUILDING FK CONTROLS")
     print("=" * 80)
 
-    rig = createFKctrls.buildFKRig(char)
+    rig = createFKctrls.buildFKRig(
+        char,
+        fk_driver_map = fk_driver_map
+    )
 
     print("\n")
     print("=" * 80)
@@ -71,11 +78,11 @@ def main():
     driver_constraints = connectControlsToJoints.connect_fk_controls_to_joints(
         char,
         rig,
-        remove_existing_joint_keys=True,
+        remove_existing_joint_keys=False,
         create_scale_constraints=False,
         maintain_offset=False
     )
-
+    fk_chain_constraints = conectFKControlsToFKChains.connect_FK_controls_to_FK_driver_chains(rig)
     print("\n")
     print("=" * 80)
     print("STEP 6 - CREATING IK CONTROLS")

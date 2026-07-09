@@ -1,8 +1,10 @@
 import maya.cmds as cmds
 import Utilities.genUtils as genUtils
+from Utilities.Config import bipedConfig
 import importlib
 
 importlib.reload(genUtils)
+importlib.reload(bipedConfig)
 
 def joint_scale_is_writable(joint):
     """
@@ -179,7 +181,8 @@ def connect_fk_controls_to_joints(
 
         if not isinstance(data, dict):
             continue
-
+        if bipedConfig.is_limb_slot(slot):
+            continue
         joint = data.get("joint")
         ctrl = data.get("ctrl")
 

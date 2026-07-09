@@ -141,6 +141,40 @@ CONTROL_FAMILIES = {
     },
 }
 
+CORE_FK_SLOTS = [
+    "pelvis",
+    "spine",
+    "spine1",
+    "spine2",
+    "neck",
+    "head",
+
+    # I will keep clavicles as core/direct for now.
+    "l_clavicle",
+    "r_clavicle",
+]
+
+
+LIMB_FK_SLOTS = [
+    "l_upperarm",
+    "l_forearm",
+    "l_hand",
+
+    "r_upperarm",
+    "r_forearm",
+    "r_hand",
+
+    "l_thigh",
+    "l_calf",
+    "l_foot",
+
+    "r_thigh",
+    "r_calf",
+    "r_foot",
+]
+
+
+FK_CTRL_ORDER = CORE_FK_SLOTS + LIMB_FK_SLOTS
 
 # IK LIMB DEFINITIONS
 
@@ -311,3 +345,9 @@ def get_all_IK_groups():
         data["IK_group"]
         for data in IK_LIMBS.values()
     ]
+def is_limb_slot(slot):
+    return slot in LIMB_FK_SLOTS
+
+
+def is_core_slot(slot):
+    return slot in CORE_FK_SLOTS

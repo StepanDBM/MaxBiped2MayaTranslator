@@ -43,8 +43,8 @@ def duplicate_source_joint_as_driver(source_joint, suffix):
     Example:
         Bip001FBXASC032LFBXASC032UpperArm
         ->
-        Bip001_L_UpperArm_fk_jnt
-        Bip001_L_UpperArm_ik_jnt
+        Bip001_L_UpperArm_FK_jnt
+        Bip001_L_UpperArm_IK_jnt
     """
 
     source_joint = genUtils.resolve_node(source_joint)
@@ -101,12 +101,12 @@ def create_driver_chain_from_slots(char, slots, suffix, parent_grp):
 
     Example:
         slots = ["l_upperarm", "l_forearm", "l_hand"]
-        suffix = "fk"
+        suffix = "FK"
 
     Result:
-        Bip001_L_UpperArm_fk_jnt
-            └── Bip001_L_Forearm_fk_jnt
-                └── Bip001_L_Hand_fk_jnt
+        Bip001_L_UpperArm_FK_jnt
+            └── Bip001_L_Forearm_FK_jnt
+                └── Bip001_L_Hand_FK_jnt
     """
     auto_transform_snapshot = genUtils.get_auto_transform_nodes()
     chain = []
@@ -230,19 +230,19 @@ def create_FKIK_driver_chains(
     # Development rebuild behavior
     if delete_existing:
 
-        if cmds.objExists("fk_chains_grp"):
-            cmds.delete("fk_chains_grp")
+        if cmds.objExists("FK_chains_grp"):
+            cmds.delete("FK_chains_grp")
 
-        if cmds.objExists("ik_chains_grp"):
-            cmds.delete("ik_chains_grp")
+        if cmds.objExists("IK_chains_grp"):
+            cmds.delete("IK_chains_grp")
 
-    fk_chains_grp = genUtils.ensure_group(
-        "fk_chains_grp",
+    FK_chains_grp = genUtils.ensure_group(
+        "FK_chains_grp",
         parent=chains_grp
     )
 
-    ik_chains_grp = genUtils.ensure_group(
-        "ik_chains_grp",
+    IK_chains_grp = genUtils.ensure_group(
+        "IK_chains_grp",
         parent=chains_grp
     )
 
@@ -252,48 +252,48 @@ def create_FKIK_driver_chains(
 
         slots = limb_data["slots"]
 
-        fk_group_name = limb_data.get(
-            "fk_chain_group",
-            limb_name + "_fk_chain_grp"
+        FK_group_name = limb_data.get(
+            "FK_chain_group",
+            limb_name + "_FK_chain_grp"
         )
 
-        ik_group_name = limb_data.get(
-            "ik_chain_group",
-            limb_name + "_ik_chain_grp"
+        IK_group_name = limb_data.get(
+            "IK_chain_group",
+            limb_name + "_IK_chain_grp"
         )
 
-        fk_limb_grp = genUtils.ensure_group(
-            fk_group_name,
-            parent=fk_chains_grp
+        FK_limb_grp = genUtils.ensure_group(
+            FK_group_name,
+            parent=FK_chains_grp
         )
 
-        ik_limb_grp = genUtils.ensure_group(
-            ik_group_name,
-            parent=ik_chains_grp
+        IK_limb_grp = genUtils.ensure_group(
+            IK_group_name,
+            parent=IK_chains_grp
         )
 
-        fk_chain = create_driver_chain_from_slots(
+        FK_chain = create_driver_chain_from_slots(
             char,
             slots,
-            "fk",
-            fk_limb_grp
+            "FK",
+            FK_limb_grp
         )
 
-        ik_chain = create_driver_chain_from_slots(
+        IK_chain = create_driver_chain_from_slots(
             char,
             slots,
-            "ik",
-            ik_limb_grp
+            "IK",
+            IK_limb_grp
         )
 
         chain_data[limb_name] = {
             "slots": slots,
 
-            "fk_chain": fk_chain,
-            "ik_chain": ik_chain,
+            "FK_chain": FK_chain,
+            "IK_chain": IK_chain,
 
-            "fk_group": fk_limb_grp,
-            "ik_group": ik_limb_grp,
+            "FK_group": FK_limb_grp,
+            "IK_group": IK_limb_grp,
         }
 
         print(
@@ -310,3 +310,25 @@ def create_FKIK_driver_chains(
     )
 
     return chain_data
+
+def build_FK_driver_slot_map(chain_data):
+    """
+    Creates:
+        {
+            "l_upperarm": "Bip001_L_UpperArm_FK_jnt",
+            "l_forearm": "Bip001_L_Forearm_FK_jnt",
+            ...
+        }
+    """
+
+    result = {}
+
+    for limb_name, data in chain_data.items():
+
+        slots = data["slots"]
+        FK_chain = data["FK_chain"]
+
+        for slot, FK_jnt in zip(slots, FK_chain):
+            result[slot] = FK_jnt
+
+    return result

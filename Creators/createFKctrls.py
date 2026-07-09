@@ -11,22 +11,23 @@ importlib.reload(ctrlAes)
 importlib.reload(genUtils)
 importlib.reload(bipedConfig)
 
-def create_ctrl_for_joint(joint):
+def create_ctrl_for_joint(source_joint, driver_joint=None):
 
-    clean = genUtils.clean_name(joint)
+    if driver_joint is None:
+        driver_joint = source_joint
+
+    clean = genUtils.clean_name(source_joint)
 
     ctrl_name = clean + "_FK_ctrl"
     ofs_name = clean + "_FK_ctrl_ofs"
     aut_name = clean + "_FK_ctrl_aut"
 
-    # Clean previous test objects if they exist
     if cmds.objExists(ofs_name):
         cmds.delete(ofs_name)
 
     if cmds.objExists(ctrl_name):
         cmds.delete(ctrl_name)
 
-    # Create objects
     ctrl = cmds.circle(
         n=ctrl_name,
         nr=(1, 0, 0),
@@ -43,7 +44,6 @@ def create_ctrl_for_joint(joint):
         n=aut_name
     )
 
-    # Parent and capture the NEW valid DAG paths
     aut = cmds.parent(
         aut,
         ofs
@@ -54,18 +54,23 @@ def create_ctrl_for_joint(joint):
         aut
     )[0]
 
-    # Snap OFS to joint
+    # Snap control to ORIGINAL animated joint,
+    # not necessarily to the FK driver joint.
     tmp = cmds.parentConstraint(
-        joint,
+        source_joint,
         ofs,
         mo=False
     )
 
     cmds.delete(tmp)
 
-    # Store SHORT names, not full DAG paths
     return {
-        "joint": joint,
+        "source_joint": source_joint,
+        "driver_joint": driver_joint,
+
+        # Keep this for backwards compatibility with old utilities.
+        "joint": source_joint,
+
         "ctrl": ctrl_name,
         "ofs": ofs_name,
         "aut": aut_name
@@ -136,7 +141,7 @@ def create_fk_constraints(rig, fk_links):
 
 
 # BUILD FK RIG
-def buildFKRig(char):
+def buildFKRig(char, fk_driver_map=None):
 
     if not cmds.objExists("ctrl_grp"):
 
@@ -149,6 +154,8 @@ def buildFKRig(char):
 
         ctrl_grp = "ctrl_grp"
 
+    if fk_driver_map is None:
+        fk_driver_map = {}
     rig = {}
 
     order = bipedConfig.FK_CTRL_ORDER
@@ -156,14 +163,16 @@ def buildFKRig(char):
 
     for slot in order:
 
-        joint = char.get(slot)
+        source_joint = char.get(slot)
 
-        if not joint:
+        if not source_joint:
             continue
 
-        rig[slot] = create_ctrl_for_joint(joint)
+        driver_joint = fk_driver_map.get(slot,source_joint)
 
-        ctrlAes.color_ctrl_by_slot(rig[slot]["ctrl"], slot)
+        rig[slot] = create_ctrl_for_joint(source_joint,driver_joint=driver_joint)
+
+        ctrlAes.color_ctrl_by_slot(rig[slot]["ctrl"],slot)
 
     # FK PARENTING
 

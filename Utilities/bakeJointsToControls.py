@@ -106,7 +106,7 @@ def bake_joints_to_fk_controls(
         if not isinstance(data, dict):
             continue
 
-        joint = data.get("joint")
+        joint = data.get("source_joint", data.get("joint"))
         ctrl = data.get("ctrl")
 
         if not joint or not ctrl:
