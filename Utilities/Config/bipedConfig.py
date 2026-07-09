@@ -292,7 +292,30 @@ FKIK_LIMBS = {
         "FKIK_group": "r_leg_FKIK_grp",
     },
 }
+IK_PREFERRED_ANGLES = {
+    # Values are XYZ preferred angle values in degrees.
+    # These may need tweaking depending on Biped joint orientation.
 
+    "l_arm": {
+        "mid_slot": "l_forearm",
+        "angles": (00, 0, -10)
+    },
+
+    "r_arm": {
+        "mid_slot": "r_forearm",
+        "angles": (0, 0, 10)
+    },
+
+    "l_leg": {
+        "mid_slot": "l_calf",
+        "angles": (0, 0, 10)
+    },
+
+    "r_leg": {
+        "mid_slot": "r_calf",
+        "angles": (0, 0, -10)
+    },
+}
 
 # HELPER FUNCTIONS
 

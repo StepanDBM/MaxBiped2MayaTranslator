@@ -17,6 +17,10 @@ from Utilities import bakeJointsToControls
 from Utilities import connectControlsToJoints
 from Creators import createIKctrls
 from Utilities import bakeFKtoIKctrls
+from Utilities import connectIKControlsToIKChains
+from Utilities import connectFKIKblendToOriginal
+from Utilities import clearOriginalJointAnimation
+
 
 
 importlib.reload(bipedScanner)
@@ -27,7 +31,11 @@ importlib.reload(connectControlsToJoints)
 importlib.reload(conectFKControlsToFKChains)
 importlib.reload(createIKctrls)
 importlib.reload(bakeFKtoIKctrls)
+importlib.reload(connectIKControlsToIKChains)
 
+importlib.reload(connectFKIKblendToOriginal)
+
+importlib.reload(clearOriginalJointAnimation)
 
 def main():
 
@@ -82,7 +90,7 @@ def main():
         create_scale_constraints=False,
         maintain_offset=False
     )
-    fk_chain_constraints = conectFKControlsToFKChains.connect_FK_controls_to_FK_driver_chains(rig)
+    
     print("\n")
     print("=" * 80)
     print("STEP 6 - CREATING IK CONTROLS")
@@ -103,6 +111,21 @@ def main():
         rig,
         ik_data
     )
+    print("\n")
+    print("=" * 80)
+    print("STEP 8 - CONNECTING IK CONTROLS TO IK CHAINS")
+    print("=" * 80)
+
+    ik_chain_connections = connectIKControlsToIKChains.connect_IK_controls_to_IK_chains(
+        ik_data,
+        chain_data,
+        delete_existing=True,
+        maintain_offset=False
+    )
+    cleared_original_keys = clearOriginalJointAnimation.clear_original_skeleton_animation(
+        char
+    )
+    fk_chain_constraints = conectFKControlsToFKChains.connect_FK_controls_to_FK_driver_chains(rig)
 
     print("\n")
     print("=" * 80)
@@ -111,12 +134,14 @@ def main():
 
     return {
         "character": char,
+        "chain_data": chain_data,
         "rig": rig,
         "baked_ctrls": baked_ctrls,
         "driver_constraints": driver_constraints,
+        "fk_chain_constraints": fk_chain_constraints,
         "ik_data": ik_data,
-        "ik_bake_data": ik_bake_data
+        "ik_bake_data": ik_bake_data,
+        "ik_chain_connections": ik_chain_connections
     }
-
 
 result = main()
