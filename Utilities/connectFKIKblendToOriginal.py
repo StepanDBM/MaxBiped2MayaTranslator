@@ -10,9 +10,31 @@ importlib.reload(bipedConfig)
 importlib.reload(ctrlAes)
 
 
-# --------------------------------------------------
-# HELPERS
-# --------------------------------------------------
+def get_FKIK_switch_offset(limb_name):
+    """
+    Returns world-space offset for FKIK switch control placement.
+
+    Arms:
+        move upward
+
+    Legs:
+        move outward from center
+    """
+
+    # Hands / arms: place above wrist/hand
+    if "arm" in limb_name:
+        return [0, 15, 0]
+
+    # Left leg: move outward to character left
+    if limb_name.startswith("l_") and "leg" in limb_name:
+        return [15, 0, 0]
+
+    # Right leg: move outward to character right
+    if limb_name.startswith("r_") and "leg" in limb_name:
+        return [-15, 0, 0]
+
+    # Fallback
+    return [0, 15, 0]
 def create_FKIK_switch_ctrl(limb_name, char, slots, radius=6):
     """
     Creates a green circular FKIK switch controller for one limb.
@@ -73,14 +95,15 @@ def create_FKIK_switch_ctrl(limb_name, char, slots, radius=6):
         ws=True,
         t=True
     )
+    offset = get_FKIK_switch_offset(limb_name)
 
     cmds.xform(
         ofs,
         ws=True,
         t=[
-            current_pos[0],
-            current_pos[1] + 15,
-            current_pos[2]
+            current_pos[0] + offset[0],
+            current_pos[1] + offset[1],
+            current_pos[2] + offset[2]
         ]
     )
 
@@ -502,7 +525,7 @@ def connect_FKIK_chains_to_original(
             )
 
         result[limb_name] = {
-            "switch_ctrl": switch_ctrl,
+            "switch_ctrl_data": switch_ctrl_data,
             "blend_attr": blend_attr,
             "reverse_node": reverse_node,
             "constraints": limb_constraints

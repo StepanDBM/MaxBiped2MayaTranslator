@@ -1,6 +1,11 @@
 # Python cache
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyc
 
 # Local pipeline/reference files
 ORIGINALPIPELINE/
+
+# Generated Maya scenes / batch outputs
+ConvertedScenes/

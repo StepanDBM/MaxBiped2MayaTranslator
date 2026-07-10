@@ -324,6 +324,34 @@ IK_BASE_PARENT_SLOTS = {
     "r_leg": "pelvis",
 }
 
+IK_FOLLOW_ORDERS = {
+    "l_arm": [
+        ("None", None),
+        ("Main", "pelvis"),
+        ("COG", "spine2"),
+        ("Clavicle", "l_clavicle"),
+    ],
+
+    "r_arm": [
+        ("None", None),
+        ("Main", "pelvis"),
+        ("COG", "spine2"),
+        ("Clavicle", "r_clavicle"),
+    ],
+
+    "l_leg": [
+        ("None", None),
+        ("Main", "pelvis"),
+        ("COG", "spine2"),
+    ],
+
+    "r_leg": [
+        ("None", None),
+        ("Main", "pelvis"),
+        ("COG", "spine2"),
+    ],
+}
+
 # HELPER FUNCTIONS
 
 def get_family_key_for_slot(slot):
