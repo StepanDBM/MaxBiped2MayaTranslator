@@ -61,10 +61,7 @@ def build_ui():
         widthHeight=(850, 650)
     )
 
-    # --------------------------------------------------------
     # Main resizable form
-    # --------------------------------------------------------
-
     mainForm = cmds.formLayout()
 
     # Top fixed-area column
@@ -74,10 +71,7 @@ def build_ui():
         parent=mainForm
     )
 
-    # --------------------------------------------------------
     # Project Root
-    # --------------------------------------------------------
-
     cmds.text(
         label="Project Root"
     )
@@ -106,9 +100,7 @@ def build_ui():
         height=8
     )
 
-    # --------------------------------------------------------
     # FBX File Selection
-    # --------------------------------------------------------
 
     cmds.text(
         label="FBX Files To Convert"
@@ -163,10 +155,7 @@ def build_ui():
         height=8
     )
 
-    # --------------------------------------------------------
     # Output Folder
-    # --------------------------------------------------------
-
     cmds.text(
         label="Output Folder"
     )
@@ -198,9 +187,7 @@ def build_ui():
         height=8
     )
 
-    # --------------------------------------------------------
     # Run Button
-    # --------------------------------------------------------
 
     cmds.button(
         label="Batch Create Animator Scenes",
@@ -215,9 +202,7 @@ def build_ui():
         height=8
     )
 
-    # --------------------------------------------------------
     # Progress Bar
-    # --------------------------------------------------------
 
     cmds.rowLayout(
         numberOfColumns=2,
@@ -239,10 +224,8 @@ def build_ui():
         height=8
     )
 
-    # --------------------------------------------------------
     # Debug Log Header
     # This is outside topColumn so the log can resize.
-    # --------------------------------------------------------
 
     cmds.setParent(mainForm)
 
@@ -273,9 +256,7 @@ def build_ui():
         parent=mainForm
     )
 
-    # --------------------------------------------------------
     # Attach layout pieces
-    # --------------------------------------------------------
 
     cmds.formLayout(
         mainForm,
@@ -298,9 +279,7 @@ def build_ui():
         ]
     )
 
-    # --------------------------------------------------------
     # Runtime UI State
-    # --------------------------------------------------------
     logger = UImLogger.UILogger.from_maya_layout(
         logHost
     )

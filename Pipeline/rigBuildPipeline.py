@@ -59,9 +59,7 @@ def run_backend_pipeline(progress_callback=None):
     importlib.reload(connectFKIKblendToOriginal)
     importlib.reload(connectIKFollowSpaces)
 
-    # --------------------------------------------------
     # STEP 1
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -70,9 +68,7 @@ def run_backend_pipeline(progress_callback=None):
 
     char = bipedScanner.scanCharacter()
 
-    # --------------------------------------------------
     # STEP 2
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -89,9 +85,7 @@ def run_backend_pipeline(progress_callback=None):
         chain_data
     )
 
-    # --------------------------------------------------
     # STEP 3
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -103,9 +97,7 @@ def run_backend_pipeline(progress_callback=None):
         fk_driver_map=FK_driver_map
     )
 
-    # --------------------------------------------------
     # STEP 4
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -117,9 +109,7 @@ def run_backend_pipeline(progress_callback=None):
         rig
     )
 
-    # --------------------------------------------------
     # STEP 5
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -134,9 +124,7 @@ def run_backend_pipeline(progress_callback=None):
         maintain_offset=False
     )
 
-    # --------------------------------------------------
     # STEP 6
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -148,9 +136,7 @@ def run_backend_pipeline(progress_callback=None):
         rig
     )
 
-    # --------------------------------------------------
     # STEP 7
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -163,9 +149,7 @@ def run_backend_pipeline(progress_callback=None):
         IK_data
     )
 
-    # --------------------------------------------------
     # STEP 8
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -180,9 +164,7 @@ def run_backend_pipeline(progress_callback=None):
         maintain_offset=False
     )
 
-    # --------------------------------------------------
     # STEP 9
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -193,9 +175,7 @@ def run_backend_pipeline(progress_callback=None):
         char
     )
 
-    # --------------------------------------------------
     # STEP 10
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -206,9 +186,7 @@ def run_backend_pipeline(progress_callback=None):
         rig
     )
 
-    # --------------------------------------------------
     # STEP 11
-    # --------------------------------------------------
 
     report_step(
         progress_callback,
@@ -225,9 +203,7 @@ def run_backend_pipeline(progress_callback=None):
         attr_name="FKIK_blend"
     )
 
-    # --------------------------------------------------
     # STEP 12
-    # --------------------------------------------------
 
     report_step(
         progress_callback,

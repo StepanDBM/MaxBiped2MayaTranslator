@@ -99,9 +99,7 @@ def create_follow_remapColor(limb_name, follow_attr, follow_order):
                 )
             )
 
-    # --------------------------------------------------
     # Helper to set one ramp channel
-    # --------------------------------------------------
 
     def set_channel_ramp(channel_name, values):
         """
@@ -163,9 +161,7 @@ def create_follow_remapColor(limb_name, follow_attr, follow_order):
                     )
                 )
 
-    # --------------------------------------------------
     # Build per-channel one-hot values
-    # --------------------------------------------------
 
     red_values = []
     green_values = []

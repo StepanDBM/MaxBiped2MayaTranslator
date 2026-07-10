@@ -339,9 +339,7 @@ def create_reverse_node(name, input_attr):
     return reverse_node
 
 
-# --------------------------------------------------
 # MAIN CONNECTION
-# --------------------------------------------------
 
 def connect_FKIK_chains_to_original(
     char,
