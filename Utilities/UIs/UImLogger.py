@@ -80,33 +80,22 @@ class UILogger(object):
         to fill the entire layout area.
         """
 
-        parent_widget = maya_layout_to_qwidget(
-            maya_layout
-        )
+        parent_widget = maya_layout_to_qwidget(maya_layout)
 
-        text_edit = QtWidgets.QTextEdit(
-            parent_widget
-        )
+        text_edit = QtWidgets.QTextEdit(parent_widget)
 
         text_edit.setReadOnly(True)
 
-        text_edit.setLineWrapMode(
-            QtWidgets.QTextEdit.NoWrap
-        )
+        text_edit.setLineWrapMode(QtWidgets.QTextEdit.NoWrap)
 
         text_edit.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding,
             QtWidgets.QSizePolicy.Expanding
         )
 
-        font = QtGui.QFont(
-            "Consolas",
-            10
-        )
+        font = QtGui.QFont("Consolas", 10)
 
-        text_edit.setFont(
-            font
-        )
+        text_edit.setFont(font)
 
         text_edit.setStyleSheet(
             """
@@ -119,27 +108,19 @@ class UILogger(object):
         )
 
         # Force it to fill the host immediately
-        text_edit.setGeometry(
-            parent_widget.rect()
-        )
+        text_edit.setGeometry(parent_widget.rect())
 
         # Force it to keep filling the host when Maya resizes
-        resize_filter = _ResizeToParentFilter(
-            text_edit
-        )
+        resize_filter = _ResizeToParentFilter(text_edit)
 
-        parent_widget.installEventFilter(
-            resize_filter
-        )
+        parent_widget.installEventFilter(resize_filter)
 
         # Keep reference alive, otherwise Python may garbage collect it
         text_edit._resize_filter = resize_filter
 
         text_edit.show()
 
-        return cls(
-            text_edit
-        )
+        return cls(text_edit)
 
     def clear(self):
         self.text_edit.clear()
@@ -200,13 +181,9 @@ class UILogger(object):
 
         message = str(message)
 
-        style = self.classify_line(
-            message
-        )
+        style = self.classify_line(message)
 
-        safe_message = html.escape(
-            message
-        )
+        safe_message = html.escape(message)
 
         html_line = (
             '<div style="'
@@ -222,17 +199,11 @@ class UILogger(object):
             message=safe_message
         )
 
-        self.text_edit.moveCursor(
-            QtGui.QTextCursor.End
-        )
+        self.text_edit.moveCursor(QtGui.QTextCursor.End)
 
-        self.text_edit.insertHtml(
-            html_line
-        )
+        self.text_edit.insertHtml(html_line)
 
-        self.text_edit.insertPlainText(
-            "\n"
-        )
+        self.text_edit.insertPlainText("\n")
 
         self.scroll_to_bottom()
 
@@ -241,9 +212,7 @@ class UILogger(object):
     def scroll_to_bottom(self):
         scrollbar = self.text_edit.verticalScrollBar()
 
-        scrollbar.setValue(
-            scrollbar.maximum()
-        )
+        scrollbar.setValue(scrollbar.maximum())
 
     def write(self, text):
         """

@@ -1,9 +1,9 @@
 import maya.cmds as cmds
 import importlib
 
-import Utilities.genUtils as genUtils
+import Utilities.genUtils as genU
 from Utilities.Config import bipedConfig
-importlib.reload(genUtils)
+importlib.reload(genU)
 importlib.reload(bipedConfig)
 
 # HELPERS
@@ -20,12 +20,10 @@ def connect_IK_chain_base_to_parent(
         l_arm IK root follows l_clavicle FK ctrl
         l_leg IK root follows pelvis FK ctrl
     """
-
+    genU.reset_time_to_start_frame(fallback_frame=0)
     if limb_name not in bipedConfig.IK_BASE_PARENT_SLOTS:
         cmds.warning(
-            "No IK base parent slot configured for {}".format(
-                limb_name
-            )
+            "No IK base parent slot configured for {}".format(limb_name)
         )
         return None
 
@@ -51,14 +49,13 @@ def connect_IK_chain_base_to_parent(
         )
         return None
 
-    parent_ctrl = genUtils.resolve_node(parent_ctrl)
-    IK_root = genUtils.resolve_node(IK_root)
+    parent_ctrl = genU.resolve_node(parent_ctrl)
+    IK_root = genU.resolve_node(IK_root)
 
     constraint_name = limb_name + "_IK_base_parentConstraint"
 
     if cmds.objExists(constraint_name):
         cmds.delete(constraint_name)
-
     constraint = cmds.parentConstraint(
         parent_ctrl,
         IK_root,
@@ -68,8 +65,8 @@ def connect_IK_chain_base_to_parent(
 
     print(
         "Connected IK chain base -> parent ctrl: {} -> {}".format(
-            genUtils.pretty_node_name(parent_ctrl),
-            genUtils.pretty_node_name(IK_root)
+            genU.pretty_node_name(parent_ctrl),
+            genU.pretty_node_name(IK_root)
         )
     )
 
@@ -83,7 +80,7 @@ def set_joint_preferred_angle(joint, angles):
         (x, y, z)
     """
 
-    joint = genUtils.resolve_node(joint)
+    joint = genU.resolve_node(joint)
 
     attrs = [
         "preferredAngleX",
@@ -136,13 +133,13 @@ def apply_IK_preferred_angle(limb_name, IK_chain):
         )
         return
 
-    mid_joint = genUtils.resolve_node(IK_chain[1])
+    mid_joint = genU.resolve_node(IK_chain[1])
 
     set_joint_preferred_angle(mid_joint, angles)
 
     print(
         "Set IK preferred angle: {} -> {}".format(
-            genUtils.pretty_node_name(mid_joint),
+            genU.pretty_node_name(mid_joint),
             angles
         )
     )
@@ -305,6 +302,9 @@ def connect_IK_controls_to_IK_chains(
 
     for limb_name, limb_chain_data in chain_data.items():
 
+        if limb_chain_data.get("system_type") == "foot_end":
+            continue
+
         if limb_name not in IK_data:
             cmds.warning(
                 "Skipping {}: no IK control data found.".format(
@@ -349,11 +349,11 @@ def connect_IK_controls_to_IK_chains(
             )
             continue
 
-        IK_root = genUtils.resolve_node(IK_chain[0])
-        IK_mid = genUtils.resolve_node(IK_chain[1])
-        IK_end = genUtils.resolve_node(IK_chain[-1])
-        IK_ctrl = genUtils.resolve_node(IK_ctrl)
-        pv_ctrl = genUtils.resolve_node(pv_ctrl)
+        IK_root = genU.resolve_node(IK_chain[0])
+        IK_mid = genU.resolve_node(IK_chain[1])
+        IK_end = genU.resolve_node(IK_chain[-1])
+        IK_ctrl = genU.resolve_node(IK_ctrl)
+        pv_ctrl = genU.resolve_node(pv_ctrl)
         unlock_transform_attrs(IK_root)
         unlock_transform_attrs(IK_mid)
         unlock_transform_attrs(IK_end)
@@ -450,15 +450,15 @@ def connect_IK_controls_to_IK_chains(
         }
 
         print("Connected IK ctrl -> IK chain: {} -> {} / {}".format(
-                genUtils.pretty_node_name(IK_ctrl),
-                genUtils.pretty_node_name(IK_root),
-                genUtils.pretty_node_name(IK_end)
+                genU.pretty_node_name(IK_ctrl),
+                genU.pretty_node_name(IK_root),
+                genU.pretty_node_name(IK_end)
             )
         )
 
         print("Connected PV ctrl -> IK handle: {} -> {}".format(
-                genUtils.pretty_node_name(pv_ctrl),
-                genUtils.pretty_node_name(IKh)
+                genU.pretty_node_name(pv_ctrl),
+                genU.pretty_node_name(IKh)
             )
         )
 

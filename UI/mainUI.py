@@ -7,58 +7,47 @@ import maya.cmds as cmds
 
 from Utilities.UIs import UImLogger
 from Utilities.UIs import fbxFileReader
-from Utilities.UIs import batchProcessor
+from Utilities.UIs import sceneProcessor
+from Utilities.UIs import batchAnimationProcessor as batchAnimProc
+from Utilities.UIs import batchConversionProcessor as batchConvProc
 
 from Pipeline import rigBuildPipeline
 
 importlib.reload(UImLogger)
 importlib.reload(fbxFileReader)
-importlib.reload(batchProcessor)
+importlib.reload(sceneProcessor)
+importlib.reload(batchAnimProc)
+importlib.reload(batchConvProc)
 importlib.reload(rigBuildPipeline)
 
 
 WINDOW = "MaxMayaRigTranslator_UI"
 
 
-def get_default_project_root():
-    """
-    Returns the project root.
-
-    If this file is imported from disk, __file__ exists.
-    Since this file lives inside /UI, we go one folder up.
-    """
-
-    if "__file__" in globals():
-        return os.path.dirname(
-            os.path.dirname(
-                os.path.abspath(__file__)
-            )
-        )
-
-    return r"E:\Work\3D\my_3D\KANEDA\Projects\Scripting\MaxMayaRigTranslator"
-
-
-def build_ui():
+def build_ui(project_root):
     global projectRootField
     global outputField
+
+    global sourceFileList
+    global animationFileList
+
+    # Backwards compatibility if some old code still reads fileList.
     global fileList
+
     global logHost
     global progressControl
     global statusLabel
     global logger
     global ui_state
 
-    if cmds.window(
-        WINDOW,
-        exists=True
-    ):
+    if cmds.window(WINDOW, exists=True):
         cmds.deleteUI(WINDOW)
 
     cmds.window(
         WINDOW,
         title="Max Maya Rig Translator",
         sizeable=True,
-        widthHeight=(850, 650)
+        widthHeight=(1000, 700)
     )
 
     # Main resizable form
@@ -71,10 +60,26 @@ def build_ui():
         parent=mainForm
     )
 
-    # Project Root
-    cmds.text(
-        label="Project Root"
+    # --------------------------------------------------
+    # CURRENT SCENE RUN BUTTON
+    # --------------------------------------------------
+
+    cmds.button(
+        label="Run Pipeline On Current Scene",
+        height=38,
+        command=lambda *args: sceneProcessor.process_current_scene(
+            ui_state,
+            rigBuildPipeline.run_backend_pipeline
+        )
     )
+
+    cmds.separator(height=8)
+
+    # --------------------------------------------------
+    # PROJECT ROOT
+    # --------------------------------------------------
+
+    cmds.text(label="Project Root")
 
     cmds.rowLayout(
         numberOfColumns=2,
@@ -82,7 +87,7 @@ def build_ui():
     )
 
     projectRootField = cmds.textField(
-        text=get_default_project_root()
+        text=project_root
     )
 
     cmds.button(
@@ -96,17 +101,36 @@ def build_ui():
 
     cmds.setParent("..")
 
-    cmds.separator(
-        height=8
+    cmds.separator(height=8)
+    # --------------------------------------------------
+    # DUAL FILE LISTS
+    # --------------------------------------------------
+
+    listsForm = cmds.formLayout(
+        parent=topColumn
     )
 
-    # FBX File Selection
+    # --------------------------------------------------
+    # LEFT LIST - SOURCE / RIG FILES
+    # --------------------------------------------------
+
+    leftColumn = cmds.columnLayout(
+        adjustableColumn=True,
+        rowSpacing=4,
+        parent=listsForm
+    )
 
     cmds.text(
-        label="FBX Files To Convert"
+        label="Selected Source / Rig Files",
+        align="left"
     )
 
-    fileList = cmds.textScrollList(
+    cmds.text(
+        label="Build mode: .fbx / .max    |    Animation mode: one .ma auto-rig",
+        align="left"
+    )
+
+    sourceFileList = cmds.textScrollList(
         allowMultiSelection=True,
         height=150
     )
@@ -114,51 +138,143 @@ def build_ui():
     cmds.rowLayout(
         numberOfColumns=4,
         adjustableColumn=1,
-        columnWidth4=(180, 180, 180, 180)
+        columnWidth4=(120, 120, 120, 120)
     )
 
     cmds.button(
-        label="Add FBX Files",
-        command=lambda *args: fbxFileReader.browse_files(
-            fileList,
+        label="Add Files",
+        command=lambda *args: fbxFileReader.browse_source_files(
+            sourceFileList,
             logger
         )
     )
 
     cmds.button(
-        label="Add Folder FBXs",
-        command=lambda *args: fbxFileReader.browse_folder_for_fbx(
-            fileList,
+        label="Add Folder",
+        command=lambda *args: fbxFileReader.browse_source_folder(
+            sourceFileList,
             logger
         )
     )
 
     cmds.button(
-        label="Remove Selected",
+        label="Remove",
         command=lambda *args: fbxFileReader.remove_selected_files(
-            fileList,
+            sourceFileList,
             logger
         )
     )
 
     cmds.button(
-        label="Clear List",
+        label="Clear",
         command=lambda *args: fbxFileReader.clear_files(
-            fileList,
+            sourceFileList,
             logger
         )
     )
 
-    cmds.setParent("..")
+    cmds.setParent("..")        # leave left button row
+    cmds.setParent(listsForm)   # leave left column / return to form
 
-    cmds.separator(
-        height=8
+
+    # --------------------------------------------------
+    # RIGHT LIST - ANIMATION FILES
+    # --------------------------------------------------
+
+    rightColumn = cmds.columnLayout(
+        adjustableColumn=True,
+        rowSpacing=4,
+        parent=listsForm
     )
 
-    # Output Folder
     cmds.text(
-        label="Output Folder"
+        label="Selected Animation Files",
+        align="left"
     )
+
+    cmds.text(
+        label="Animation mode only: baked skeleton animation .fbx files",
+        align="left"
+    )
+
+    animationFileList = cmds.textScrollList(
+        allowMultiSelection=True,
+        height=150
+    )
+
+    cmds.rowLayout(
+        numberOfColumns=4,
+        adjustableColumn=1,
+        columnWidth4=(120, 120, 120, 120)
+    )
+
+    cmds.button(
+        label="Add Anim FBXs",
+        command=lambda *args: fbxFileReader.browse_animation_files(
+            animationFileList,
+            logger
+        )
+    )
+
+    cmds.button(
+        label="Add Folder",
+        command=lambda *args: fbxFileReader.browse_animation_folder(
+            animationFileList,
+            logger
+        )
+    )
+
+    cmds.button(
+        label="Remove",
+        command=lambda *args: fbxFileReader.remove_selected_files(
+            animationFileList,
+            logger
+        )
+    )
+
+    cmds.button(
+        label="Clear",
+        command=lambda *args: fbxFileReader.clear_files(
+            animationFileList,
+            logger
+        )
+    )
+
+    cmds.setParent("..")        # leave right button row
+    cmds.setParent(listsForm)   # return to form
+
+
+    # --------------------------------------------------
+    # MAKE BOTH SIDES 50/50
+    # --------------------------------------------------
+
+    cmds.formLayout(
+        listsForm,
+        e=True,
+        attachForm=[
+            (leftColumn, "top", 0),
+            (leftColumn, "left", 0),
+            (leftColumn, "bottom", 0),
+
+            (rightColumn, "top", 0),
+            (rightColumn, "right", 0),
+            (rightColumn, "bottom", 0),
+        ],
+        attachPosition=[
+            (leftColumn, "right", 4, 50),
+            (rightColumn, "left", 4, 50),
+        ]
+    )
+
+    cmds.setParent(topColumn)
+
+    cmds.separator(height=8)
+
+    # --------------------------------------------------
+    # OUTPUT FOLDER
+    # --------------------------------------------------
+
+    cmds.text(label="Output Folder")
 
     cmds.rowLayout(
         numberOfColumns=2,
@@ -167,7 +283,7 @@ def build_ui():
 
     outputField = cmds.textField(
         text=os.path.join(
-            get_default_project_root(),
+            project_root,
             "ConvertedScenes"
         )
     )
@@ -183,26 +299,56 @@ def build_ui():
 
     cmds.setParent("..")
 
-    cmds.separator(
-        height=8
-    )
+    cmds.separator(height=8)
 
-    # Run Button
+    # --------------------------------------------------
+    # RUN BUTTON
+    # --------------------------------------------------
 
-    cmds.button(
-        label="Batch Create Animator Scenes",
+    buttonForm = cmds.formLayout()
+
+    buildRigButton = cmds.button(
+        label="Batch Build Rigs From Source Files",
         height=45,
-        command=lambda *args: batchProcessor.process_files(
+        command=lambda *args: batchConvProc.process_conversion_batch(
             ui_state,
             rigBuildPipeline.run_backend_pipeline
         )
     )
 
-    cmds.separator(
-        height=8
+    bakeAnimButton = cmds.button(
+        label="Batch Bake Animations Onto Auto-Rig",
+        height=45,
+        command=lambda *args: batchAnimProc.process_animation_batch(
+            ui_state
+        )
     )
 
-    # Progress Bar
+    cmds.formLayout(
+        buttonForm,
+        e=True,
+        attachForm=[
+            (buildRigButton, "top", 0),
+            (buildRigButton, "left", 0),
+            (buildRigButton, "bottom", 0),
+
+            (bakeAnimButton, "top", 0),
+            (bakeAnimButton, "right", 0),
+            (bakeAnimButton, "bottom", 0),
+        ],
+        attachPosition=[
+            (buildRigButton, "right", 4, 50),
+            (bakeAnimButton, "left", 4, 50),
+        ]
+    )
+
+    cmds.setParent("..")
+
+    cmds.separator(height=8)
+
+    # --------------------------------------------------
+    # PROGRESS BAR
+    # --------------------------------------------------
 
     cmds.rowLayout(
         numberOfColumns=2,
@@ -220,12 +366,11 @@ def build_ui():
 
     cmds.setParent("..")
 
-    cmds.separator(
-        height=8
-    )
+    cmds.separator(height=8)
 
-    # Debug Log Header
-    # This is outside topColumn so the log can resize.
+    # --------------------------------------------------
+    # DEBUG LOG HEADER
+    # --------------------------------------------------
 
     cmds.setParent(mainForm)
 
@@ -247,16 +392,17 @@ def build_ui():
 
     cmds.setParent(mainForm)
 
-    """
-    Resizable Debug Log Host
-    This Maya layout will contain the Qt QTextEdit logger.
-    No fixed height here.
-    """
+    # --------------------------------------------------
+    # RESIZABLE DEBUG LOG HOST
+    # --------------------------------------------------
+
     logHost = cmds.formLayout(
         parent=mainForm
     )
 
-    # Attach layout pieces
+    # --------------------------------------------------
+    # FORM ATTACHMENTS
+    # --------------------------------------------------
 
     cmds.formLayout(
         mainForm,
@@ -279,20 +425,31 @@ def build_ui():
         ]
     )
 
-    # Runtime UI State
+    # --------------------------------------------------
+    # RUNTIME UI STATE
+    # --------------------------------------------------
+
     logger = UImLogger.UILogger.from_maya_layout(
         logHost
     )
 
+    # Backwards compatibility:
+    # old batchProcessor code may still look for "fileList".
+    fileList = sourceFileList
+
     ui_state = {
         "projectRootField": projectRootField,
         "outputField": outputField,
-        "fileList": fileList,
+
+        "sourceFileList": sourceFileList,
+        "animationFileList": animationFileList,
+
+        # temporary old key
+        "fileList": sourceFileList,
+
         "progressControl": progressControl,
         "statusLabel": statusLabel,
         "logger": logger
     }
 
-    cmds.showWindow(
-        WINDOW
-    )
+    cmds.showWindow(WINDOW)

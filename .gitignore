@@ -9,3 +9,9 @@ ORIGINALPIPELINE/
 
 # Generated Maya scenes / batch outputs
 ConvertedScenes/
+
+# Some Logs that aren't relevant.
+log_*
+
+# Some videos I have
+Presentation/

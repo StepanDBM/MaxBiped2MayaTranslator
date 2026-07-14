@@ -11,7 +11,7 @@ importlib.reload(ctrlAes)
 importlib.reload(genUtils)
 importlib.reload(bipedConfig)
 
-def create_ctrl_for_joint(source_joint, driver_joint=None):
+def create_ctrl_for_joint(source_joint, driver_joint=None, size=10):
 
     if driver_joint is None:
         driver_joint = source_joint
@@ -31,28 +31,16 @@ def create_ctrl_for_joint(source_joint, driver_joint=None):
     ctrl = cmds.circle(
         n=ctrl_name,
         nr=(1, 0, 0),
-        r=10
+        r=size
     )[0]
 
-    ofs = cmds.group(
-        em=True,
-        n=ofs_name
-    )
+    ofs = cmds.group(em=True, n=ofs_name)
 
-    aut = cmds.group(
-        em=True,
-        n=aut_name
-    )
+    aut = cmds.group(em=True, n=aut_name)
 
-    aut = cmds.parent(
-        aut,
-        ofs
-    )[0]
+    aut = cmds.parent(aut, ofs)[0]
 
-    ctrl = cmds.parent(
-        ctrl,
-        aut
-    )[0]
+    ctrl = cmds.parent(ctrl, aut)[0]
 
     # Snap control to ORIGINAL animated joint,
     # not necessarily to the FK driver joint.
@@ -100,8 +88,8 @@ def create_fk_constraints(rig, fk_links):
             rig[parent_slot]["ctrl"]
         )
 
-        child_ofs = genUtils.resolve_node(
-            rig[child_slot]["ofs"]
+        child_aut = genUtils.resolve_node(
+            rig[child_slot]["aut"]
         )
 
         pc_name = "{}_to_{}_parentConstraint".format(
@@ -122,14 +110,14 @@ def create_fk_constraints(rig, fk_links):
 
         pc = cmds.parentConstraint(
             parent_ctrl,
-            child_ofs,
+            child_aut,
             mo=True,
             n=pc_name
         )[0]
 
         sc = cmds.scaleConstraint(
             parent_ctrl,
-            child_ofs,
+            child_aut,
             mo=True,
             n=sc_name
         )[0]

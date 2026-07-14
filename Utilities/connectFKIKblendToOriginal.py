@@ -372,6 +372,9 @@ def connect_FKIK_chains_to_original(
 
     for limb_name, limb_chain_data in chain_data.items():
 
+        if limb_chain_data.get("system_type") == "foot_end":
+            continue
+
         slots = limb_chain_data.get("slots")
         FK_chain = limb_chain_data.get("FK_chain")
         IK_chain = limb_chain_data.get("IK_chain")
