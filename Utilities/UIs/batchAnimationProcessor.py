@@ -24,6 +24,56 @@ def ensure_project_root(project_root):
     return project_root
 
 
+THIS_SCENE_TOKEN = "THIS SCENE"
+
+
+def is_this_scene_token(path):
+    if not path:
+        return False
+
+    return path.strip().upper() == THIS_SCENE_TOKEN
+
+
+def get_current_scene_rig_name():
+    scene_path = cmds.file(
+        q=True,
+        sceneName=True
+    )
+
+    if scene_path:
+        return safe_folder_name_from_file(
+            scene_path
+        )
+
+    return "CurrentScene"
+
+
+def save_current_scene_snapshot(rig_output_dir, rig_name):
+    """
+    Saves the currently open scene as a reusable clean source scene.
+
+    Every animation job should reopen this snapshot before importing/baking.
+    """
+
+    if not os.path.exists(rig_output_dir):
+        os.makedirs(rig_output_dir)
+
+    snapshot_path = os.path.join(
+        rig_output_dir,
+        rig_name + "_THIS_SCENE_SOURCE.ma"
+    )
+
+    cmds.file(
+        rename=snapshot_path
+    )
+
+    cmds.file(
+        save=True,
+        type="mayaAscii"
+    )
+
+    return snapshot_path
+
 def is_ma_file(path):
     return path.lower().endswith(".ma")
 
@@ -100,23 +150,29 @@ def process_animation_batch(ui_state):
 
     animation_files = fbxFileReader.get_list_items(animation_file_list)
 
+    use_current_scene = False
+    rig_scene = None
+
     if not source_files:
-        cmds.warning(
-            "Animation mode requires one .ma auto-rig in the left/source list."
-        )
-        return
+        use_current_scene = True
 
-    if len(source_files) != 1:
-        cmds.warning(
-            "Animation mode requires exactly one .ma auto-rig in the left/source list."
-        )
-        return
+    elif len(source_files) == 1 and is_this_scene_token(source_files[0]):
+        use_current_scene = True
 
-    rig_scene = source_files[0]
+    elif len(source_files) == 1:
+        rig_scene = source_files[0]
 
-    if not is_ma_file(rig_scene):
+        if not is_ma_file(rig_scene):
+            cmds.warning(
+                "Animation mode requires one .ma auto-rig in the left/source list, "
+                "or an empty left/source list to use the current scene."
+            )
+            return
+
+    else:
         cmds.warning(
-            "Animation mode requires the left/source file to be a .ma auto-rig."
+            "Animation mode requires exactly one .ma auto-rig in the left/source list, "
+            "or an empty left/source list to use the current scene."
         )
         return
 
@@ -174,41 +230,30 @@ def process_animation_batch(ui_state):
     ).strip()
 
     if not project_root:
-        cmds.warning(
-            "No project root set."
-        )
+        cmds.warning("No project root set.")
         return
 
-    ensure_project_root(
-        project_root
-    )
+    ensure_project_root(project_root)
 
-    rig_name = safe_folder_name_from_file(rig_scene)
+    if use_current_scene:
+        rig_name = get_current_scene_rig_name()
+
+    else:
+        rig_name = safe_folder_name_from_file(
+            rig_scene
+        )
 
     """
     Expected structure:
        output_dir/
           RigName/
-            RigName.ma
+            RigName.ma or RigName_THIS_SCENE_SOURCE.ma
             RigName_Animations/
-    in case it does not exist, remake it.
     """
-    expected_rig_output_dir = os.path.join(output_dir, rig_name)
 
-    # If the selected rig is already inside a RigName folder,
-    # use that folder directly.
-    selected_rig_dir = os.path.dirname(os.path.normpath(rig_scene))
-
-    selected_rig_base = os.path.basename(selected_rig_dir)
-
-    if selected_rig_base == rig_name:
-        rig_output_dir = selected_rig_dir
-    else:
-        rig_output_dir = expected_rig_output_dir
-
-    rig_copy_path = os.path.join(
-        rig_output_dir,
-        rig_name + ".ma"
+    rig_output_dir = os.path.join(
+        output_dir,
+        rig_name
     )
 
     animations_output_dir = os.path.join(
@@ -222,6 +267,7 @@ def process_animation_batch(ui_state):
         if logger:
             logger.append("Created missing rig output folder:")
             logger.append(rig_output_dir)
+
     else:
         if logger:
             logger.append("Using existing rig output folder:")
@@ -233,34 +279,85 @@ def process_animation_batch(ui_state):
         if logger:
             logger.append("Created missing animations folder:")
             logger.append(animations_output_dir)
+
     else:
         if logger:
             logger.append("Using existing animations folder:")
             logger.append(animations_output_dir)
 
-    # Copy source rig into the rig folder only if it is not already there.
-    try:
-        source_rig_norm = os.path.normcase(os.path.normpath(rig_scene))
+    if use_current_scene:
+        rig_copy_path = save_current_scene_snapshot(
+            rig_output_dir,
+            rig_name
+        )
 
-        target_rig_norm = os.path.normcase(os.path.normpath(rig_copy_path))
+        if logger:
+            logger.append("Using current scene snapshot:")
+            logger.append(rig_copy_path)
 
-        if source_rig_norm != target_rig_norm:
-            shutil.copy2(rig_scene, rig_copy_path)
+    else:
+        expected_rig_output_dir = os.path.join(
+            output_dir,
+            rig_name
+        )
 
-            if logger:
-                logger.append("Copied rig scene:")
-                logger.append(rig_copy_path)
+        selected_rig_dir = os.path.dirname(
+            os.path.normpath(rig_scene)
+        )
+
+        selected_rig_base = os.path.basename(
+            selected_rig_dir
+        )
+
+        if selected_rig_base == rig_name:
+            rig_output_dir = selected_rig_dir
+
+            animations_output_dir = os.path.join(
+                rig_output_dir,
+                rig_name + "_Animations"
+            )
+
+            if not os.path.exists(animations_output_dir):
+                os.makedirs(animations_output_dir)
 
         else:
+            rig_output_dir = expected_rig_output_dir
+
+        rig_copy_path = os.path.join(
+            rig_output_dir,
+            rig_name + ".ma"
+        )
+
+        try:
+            source_rig_norm = os.path.normcase(
+                os.path.normpath(rig_scene)
+            )
+
+            target_rig_norm = os.path.normcase(
+                os.path.normpath(rig_copy_path)
+            )
+
+            if source_rig_norm != target_rig_norm:
+                shutil.copy2(
+                    rig_scene,
+                    rig_copy_path
+                )
+
+                if logger:
+                    logger.append("Copied rig scene:")
+                    logger.append(rig_copy_path)
+
+            else:
+                if logger:
+                    logger.append("Rig scene is already in the expected location:")
+                    logger.append(rig_copy_path)
+
+        except Exception:
             if logger:
-                logger.append("Rig scene is already in the expected location:")
-                logger.append(rig_copy_path)
+                logger.append("Warning: Could not copy rig scene to output folder.")
+                logger.append(traceback.format_exc())
 
-    except Exception:
-        logger.append("Warning: Could not copy rig scene to output folder.")
-        logger.append(traceback.format_exc())
-
-        rig_copy_path = rig_scene
+            rig_copy_path = rig_scene
 
     total_units = (
         1 +
@@ -322,7 +419,11 @@ def process_animation_batch(ui_state):
     logger.append("ANIMATION BATCH START")
     logger.append("=" * 80)
     logger.append("Rig scene:")
-    logger.append(rig_scene)
+
+    if use_current_scene:
+        logger.append(THIS_SCENE_TOKEN)
+    else:
+        logger.append(rig_scene)
     logger.append("Rig output folder:")
     logger.append(rig_output_dir)
     logger.append("Rig copy:")
@@ -332,9 +433,7 @@ def process_animation_batch(ui_state):
     logger.append("Animation file count: {}".format(len(animation_files)))
     logger.append("=" * 80)
 
-    advance_progress(
-        "Prepared rig animation output folders"
-    )
+    advance_progress("Prepared rig animation output folders")
 
     success_count = 0
     failed_count = 0
@@ -369,7 +468,11 @@ def process_animation_batch(ui_state):
                     rig_scene_path=rig_copy_path,
                     animation_fbx_path=animation_path,
                     output_scene_path=output_scene,
-                    progress_callback=advance_progress
+                    progress_callback=advance_progress,
+                    sample_by=1,
+                    clear_keys=True,
+                    delete_imported=True,
+                    save_scene=True
                 )
 
             success_count += 1

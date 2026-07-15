@@ -5,11 +5,13 @@ import re
 import Creators.ctrlAesthetics as ctrlAes
 import Utilities.genUtils as genUtils
 from Utilities.Config import bipedConfig
-
+import Utilities.controlScaleUtils as ctrlScale
 
 importlib.reload(ctrlAes)
 importlib.reload(genUtils)
 importlib.reload(bipedConfig)
+importlib.reload(ctrlScale)
+
 
 def create_ctrl_for_joint(source_joint, driver_joint=None, size=10):
 
@@ -147,7 +149,9 @@ def buildFKRig(char, fk_driver_map=None):
     rig = {}
 
     order = bipedConfig.FK_CTRL_ORDER
-
+    control_measurements = ctrlScale.get_character_measurements(
+        char
+    )
 
     for slot in order:
 
@@ -156,11 +160,27 @@ def buildFKRig(char, fk_driver_map=None):
         if not source_joint:
             continue
 
-        driver_joint = fk_driver_map.get(slot,source_joint)
+        driver_joint = fk_driver_map.get(
+            slot,
+            source_joint
+        )
 
-        rig[slot] = create_ctrl_for_joint(source_joint,driver_joint=driver_joint)
+        ctrl_size = ctrlScale.get_fk_control_size(
+            slot,
+            char,
+            measurements=control_measurements
+        )
 
-        ctrlAes.color_ctrl_by_slot(rig[slot]["ctrl"],slot)
+        rig[slot] = create_ctrl_for_joint(
+            source_joint,
+            driver_joint=driver_joint,
+            size=ctrl_size
+        )
+
+        ctrlAes.color_ctrl_by_slot(
+            rig[slot]["ctrl"],
+            slot
+        )
 
     # FK PARENTING
 

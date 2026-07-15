@@ -619,3 +619,301 @@ def reconstruct_IK_data_from_scene():
     print("=" * 80)
 
     return IK_data
+
+def run_animation_bake_pipeline(
+    rig_scene_path=None,
+    animation_fbx_path=None,
+    output_scene_path=None,
+    progress_callback=None,
+    sample_by=1,
+    clear_keys=True,
+    delete_imported=True,
+    save_scene=True
+):
+    """
+    Full animation bake pipeline.
+
+    Expected flow:
+        1. Open rig scene, optional
+        2. Import animation FBX
+        3. Scan imported animation skeleton
+        4. Reconstruct FK rig data from existing auto-rig controls
+        5. Bake imported animation joints to FK controls
+        6. Reconstruct IK data from existing auto-rig controls
+        7. Bake FK motion to IK controls / PV controls
+        8. Delete imported animation skeleton and save output scene
+
+    Args:
+        rig_scene_path:
+            Optional .ma rig scene to open before running.
+            If None, runs on the currently open scene.
+
+        animation_fbx_path:
+            Required animation FBX path.
+
+        output_scene_path:
+            Optional .ma output path.
+
+        progress_callback:
+            Optional UI callback receiving a string label.
+
+        sample_by:
+            Bake sample step.
+
+        clear_keys:
+            Clears existing control keys before baking.
+
+        delete_imported:
+            Deletes imported animation FBX skeleton after baking.
+
+        save_scene:
+            Saves the final baked scene.
+
+    Returns:
+        {
+            "rig_scene_path": str or None,
+            "animation_fbx_path": str,
+            "output_scene_path": str or None,
+            "char": dict,
+            "rig": dict,
+            "IK_data": dict,
+            "import_data": dict,
+            "baked_fk_controls": list,
+            "baked_ik_data": dict,
+            "deleted_import_nodes": list
+        }
+    """
+
+    if not animation_fbx_path:
+        raise RuntimeError(
+            "run_animation_bake_pipeline requires animation_fbx_path."
+        )
+
+    if rig_scene_path:
+        report_step(
+            progress_callback,
+            "STEP 1/8 - OPENING AUTO-RIG SCENE"
+        )
+
+        rig_scene_path = os.path.normpath(rig_scene_path)
+
+        if not os.path.exists(rig_scene_path):
+            raise RuntimeError(
+                "Rig scene does not exist: {}".format(
+                    rig_scene_path
+                )
+            )
+
+        cmds.file(
+            rig_scene_path,
+            open=True,
+            force=True
+        )
+
+    else:
+        report_step(
+            progress_callback,
+            "STEP 1/8 - USING CURRENT AUTO-RIG SCENE"
+        )
+
+    # --------------------------------------------------
+    # IMPORT ANIMATION FBX
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 2/8 - IMPORTING ANIMATION FBX"
+    )
+
+    import_data = import_animation_fbx(
+        animation_fbx_path
+    )
+
+    animation_joints = import_data.get(
+        "new_joints",
+        []
+    )
+
+    if not animation_joints:
+        raise RuntimeError(
+            "No imported animation joints found."
+        )
+
+    # --------------------------------------------------
+    # SCAN IMPORTED ANIMATION CHARACTER
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 3/8 - SCANNING IMPORTED ANIMATION SKELETON"
+    )
+
+    char = scan_animation_character_from_joints(
+        animation_joints
+    )
+
+    start = int(
+        char.get(
+            "startFrame",
+            cmds.playbackOptions(q=True, min=True)
+        )
+    )
+
+    end = int(
+        char.get(
+            "endFrame",
+            cmds.playbackOptions(q=True, max=True)
+        )
+    )
+
+    cmds.playbackOptions(
+        min=start,
+        max=end,
+        animationStartTime=start,
+        animationEndTime=end
+    )
+
+    print("=" * 80)
+    print("ANIMATION BAKE FRAME RANGE")
+    print("{} -> {}".format(start, end))
+    print("=" * 80)
+
+    # --------------------------------------------------
+    # RECONSTRUCT FK RIG DATA
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 4/8 - RECONSTRUCTING FK RIG DATA"
+    )
+
+    rig = reconstruct_rig_from_scene(
+        char,
+        animation_joints
+    )
+
+    if not rig:
+        raise RuntimeError(
+            "Could not reconstruct FK rig data from scene."
+        )
+
+    # --------------------------------------------------
+    # BAKE IMPORTED JOINTS TO FK CONTROLS
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 5/8 - BAKING ANIMATION JOINTS TO FK CONTROLS"
+    )
+
+    baked_fk_controls = bakeJointsToControls.bake_joints_to_fk_controls(
+        char,
+        rig,
+        start=start,
+        end=end,
+        sample_by=sample_by,
+        clear_keys=clear_keys
+    )
+
+    # --------------------------------------------------
+    # RECONSTRUCT IK DATA
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 6/8 - RECONSTRUCTING IK DATA"
+    )
+
+    IK_data = reconstruct_IK_data_from_scene()
+
+    if not IK_data:
+        cmds.warning(
+            "No IK data reconstructed. FK bake completed, but IK bake will be skipped."
+        )
+
+    # --------------------------------------------------
+    # BAKE FK MOTION TO IK CONTROLS
+    # --------------------------------------------------
+
+    baked_ik_data = {}
+
+    if IK_data:
+        report_step(
+            progress_callback,
+            "STEP 7/8 - BAKING FK MOTION TO IK CONTROLS"
+        )
+
+        baked_ik_data = bakeFKtoIKctrls.bake_FK_to_IK_controls(
+            char,
+            rig,
+            IK_data,
+            start=start,
+            end=end,
+            sample_by=sample_by,
+            clear_existing_keys=clear_keys
+        )
+
+    else:
+        report_step(
+            progress_callback,
+            "STEP 7/8 - SKIPPING IK BAKE, NO IK DATA"
+        )
+
+    # --------------------------------------------------
+    # CLEAN IMPORTED ANIMATION AND SAVE
+    # --------------------------------------------------
+
+    report_step(
+        progress_callback,
+        "STEP 8/8 - CLEANING IMPORTED ANIMATION AND SAVING"
+    )
+
+    deleted_import_nodes = []
+
+    if delete_imported:
+        deleted_import_nodes = delete_imported_animation(
+            import_data
+        )
+
+    if output_scene_path:
+        output_scene_path = os.path.normpath(
+            output_scene_path
+        )
+
+        output_dir = os.path.dirname(
+            output_scene_path
+        )
+
+        if output_dir and not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+
+        cmds.file(
+            rename=output_scene_path
+        )
+
+    if save_scene:
+        cmds.file(
+            save=True,
+            type="mayaAscii"
+        )
+
+    print("=" * 80)
+    print("ANIMATION BAKE PIPELINE COMPLETE")
+    print("Animation FBX: {}".format(animation_fbx_path))
+    print("Output scene: {}".format(output_scene_path))
+    print("Baked FK controls: {}".format(len(baked_fk_controls)))
+    print("Baked IK data keys: {}".format(list(baked_ik_data.keys())))
+    print("=" * 80)
+
+    return {
+        "rig_scene_path": rig_scene_path,
+        "animation_fbx_path": animation_fbx_path,
+        "output_scene_path": output_scene_path,
+        "char": char,
+        "rig": rig,
+        "IK_data": IK_data,
+        "import_data": import_data,
+        "baked_fk_controls": baked_fk_controls,
+        "baked_ik_data": baked_ik_data,
+        "deleted_import_nodes": deleted_import_nodes
+    }

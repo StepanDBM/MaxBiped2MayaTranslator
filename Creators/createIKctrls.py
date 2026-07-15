@@ -5,11 +5,13 @@ from Utilities.Config import bipedConfig
 import Utilities.genUtils as genUtils
 import Utilities.vectorMath as vMath
 import Creators.ctrlAesthetics as ctrlAes
+import Utilities.controlScaleUtils as ctrlScale
 
 importlib.reload(bipedConfig)
 importlib.reload(genUtils)
 importlib.reload(vMath)
 importlib.reload(ctrlAes)
+importlib.reload(ctrlScale)
 
 
 def calculate_pole_vector_position(start_obj, mid_obj, end_obj, distance_multiplier=1.5):
@@ -259,7 +261,6 @@ def create_IK_controls(char, rig):
 
     # CREATE IK FAMILY GROUPS
     groups = {}
-
     for limb_name, limb_data in bipedConfig.IK_LIMBS.items():
 
         groups[limb_name] = genUtils.ensure_group(
@@ -267,6 +268,9 @@ def create_IK_controls(char, rig):
             parent=IK_root_grp
         )
 
+    control_measurements = ctrlScale.get_character_measurements(
+        char
+    )
     # CREATE IK CONTROLS
     IK_data = {}
 
@@ -317,11 +321,17 @@ def create_IK_controls(char, rig):
         mid_joint = rig[mid_slot]["joint"]
         end_joint = rig[end_slot]["joint"]
 
+        ik_radius = ctrlScale.get_ik_control_size(
+            limb_name,
+            char,
+            measurements=control_measurements
+        )
+
         # CREATE IK END CONTROL
         IK_ctrl_data = create_IK_ctrl(
             ctrl_base_name,
             end_fk_ctrl,
-            radius=12
+            radius=ik_radius
         )
 
         # CREATE POLE VECTOR CONTROL
@@ -331,10 +341,16 @@ def create_IK_controls(char, rig):
             end_joint
         )
 
+        pv_radius = ctrlScale.get_pv_control_size(
+            limb_name,
+            char,
+            measurements=control_measurements
+        )
+
         pv_ctrl_data = create_pv_ctrl(
             ctrl_base_name,
             pv_position,
-            radius=5
+            radius=pv_radius
         )
 
         # GROUP CONTROLS
