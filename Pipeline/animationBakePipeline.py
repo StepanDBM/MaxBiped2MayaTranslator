@@ -42,7 +42,87 @@ def safe_mel_path(path):
     path = path.replace("\\", "/")
     path = path.replace('"', '\\"')
     return path
+def safe_namespace_from_file(path):
+    """
+    Creates a safe Maya namespace from a file path.
+    """
 
+    base = os.path.splitext(
+        os.path.basename(path)
+    )[0]
+
+    bad_chars = [
+        " ",
+        ":",
+        ";",
+        ",",
+        ".",
+        "-",
+        "(",
+        ")",
+        "[",
+        "]",
+        "{",
+        "}",
+    ]
+
+    for char in bad_chars:
+        base = base.replace(
+            char,
+            "_"
+        )
+
+    while "__" in base:
+        base = base.replace(
+            "__",
+            "_"
+        )
+
+    return base.strip("_") or "rig"
+
+
+def reference_rig_scene(rig_scene_path, namespace=None):
+    """
+    Creates a new Maya scene and references the rig scene into it.
+    """
+
+    rig_scene_path = os.path.normpath(
+        rig_scene_path
+    )
+
+    if not os.path.exists(rig_scene_path):
+        raise RuntimeError(
+            "Rig scene does not exist: {}".format(
+                rig_scene_path
+            )
+        )
+
+    if namespace is None:
+        namespace = safe_namespace_from_file(
+            rig_scene_path
+        )
+
+    cmds.file(
+        new=True,
+        force=True
+    )
+
+    cmds.file(
+        rig_scene_path,
+        reference=True,
+        namespace=namespace
+    )
+
+    print("=" * 80)
+    print("REFERENCED RIG SCENE")
+    print("Rig scene: {}".format(rig_scene_path))
+    print("Namespace: {}".format(namespace))
+    print("=" * 80)
+
+    return {
+        "namespace": namespace,
+        "rig_scene_path": rig_scene_path
+    }
 
 def clean_base_name(node):
     """
@@ -63,18 +143,40 @@ def clean_base_name(node):
 
 def find_node(name):
     """
-    Resolves a node by exact name or Maya ls fallback.
+    Resolves a node by exact name, normal ls, or referenced namespace fallback.
     """
 
     if cmds.objExists(name):
         return name
 
-    matches = cmds.ls(name, long=False) or []
+    matches = cmds.ls(
+        name,
+        long=False
+    ) or []
 
     if matches:
         return matches[0]
 
-    matches = cmds.ls(name, long=True) or []
+    matches = cmds.ls(
+        name,
+        long=True
+    ) or []
+
+    if matches:
+        return matches[0]
+
+    matches = cmds.ls(
+        "*:" + name,
+        long=False
+    ) or []
+
+    if matches:
+        return matches[0]
+
+    matches = cmds.ls(
+        "*:" + name,
+        long=True
+    ) or []
 
     if matches:
         return matches[0]
@@ -394,11 +496,23 @@ def reconstruct_rig_from_scene(char, animation_joints):
     # Dynamic FK controls: fingers / extras
     # --------------------------------------------------
 
-    fk_ctrls = cmds.ls(
+    fk_ctrls = []
+
+    local_fk_ctrls = cmds.ls(
         "*_FK_ctrl",
         type="transform",
         long=False
     ) or []
+
+    referenced_fk_ctrls = cmds.ls(
+        "*:*_FK_ctrl",
+        type="transform",
+        long=False
+    ) or []
+
+    for ctrl in local_fk_ctrls + referenced_fk_ctrls:
+        if ctrl not in fk_ctrls:
+            fk_ctrls.append(ctrl)
 
     for ctrl in fk_ctrls:
 
@@ -408,9 +522,13 @@ def reconstruct_rig_from_scene(char, animation_joints):
         if not ctrl.endswith("_FK_ctrl"):
             continue
 
-        base = ctrl[:-len("_FK_ctrl")]
+        base = clean_base_name(
+            ctrl[:-len("_FK_ctrl")]
+        )
 
-        joint = animation_joint_lookup.get(base)
+        joint = animation_joint_lookup.get(
+            base
+        )
 
         if not joint:
             continue
@@ -443,79 +561,6 @@ def reconstruct_rig_from_scene(char, animation_joints):
     print("=" * 80)
 
     return rig
-
-
-def reconstruct_IK_data_from_scene():
-    """
-    Reconstructs the IK_data dictionary expected by bakeFKtoIKctrls.
-
-    Uses deterministic names from bipedConfig.IK_LIMBS.
-    """
-
-    print("=" * 80)
-    print("RECONSTRUCTING IK DATA FROM EXISTING AUTO-RIG")
-    print("=" * 80)
-
-    IK_data = {}
-
-    for limb_name, data in bipedConfig.IK_LIMBS.items():
-
-        base = data.get("name")
-
-        if not base:
-            continue
-
-        IK_ctrl = find_node(base + "_IK_ctrl")
-        IK_ofs = find_node(base + "_IK_ctrl_ofs")
-        IK_aut = find_node(base + "_IK_ctrl_aut")
-
-        pv_ctrl = find_node(base + "_pv_ctrl")
-        pv_ofs = find_node(base + "_pv_ctrl_ofs")
-        pv_aut = find_node(base + "_pv_ctrl_aut")
-
-        if not IK_ctrl:
-            cmds.warning(
-                "Missing IK ctrl for limb {} expected {}".format(
-                    limb_name,
-                    base + "_IK_ctrl"
-                )
-            )
-            continue
-
-        if not pv_ctrl:
-            cmds.warning(
-                "Missing PV ctrl for limb {} expected {}".format(
-                    limb_name,
-                    base + "_pv_ctrl"
-                )
-            )
-
-        IK_data[limb_name] = {
-            "IK_ctrl": {
-                "ctrl": IK_ctrl,
-                "ofs": IK_ofs,
-                "aut": IK_aut
-            },
-            "pv_ctrl": {
-                "ctrl": pv_ctrl,
-                "ofs": pv_ofs,
-                "aut": pv_aut
-            }
-        }
-
-        print(
-            "Mapped IK data for {}: IK={} PV={}".format(
-                limb_name,
-                IK_ctrl,
-                pv_ctrl
-            )
-        )
-
-    print("Reconstructed {} IK systems.".format(len(IK_data)))
-    print("=" * 80)
-
-    return IK_data
-
 
 # --------------------------------------------------
 # MAIN PIPELINE
@@ -628,7 +673,8 @@ def run_animation_bake_pipeline(
     sample_by=1,
     clear_keys=True,
     delete_imported=True,
-    save_scene=True
+    save_scene=True,
+    reference_rig=True
 ):
     """
     Full animation bake pipeline.
@@ -683,19 +729,32 @@ def run_animation_bake_pipeline(
             "deleted_import_nodes": list
         }
     """
-
     if not animation_fbx_path:
         raise RuntimeError(
             "run_animation_bake_pipeline requires animation_fbx_path."
         )
 
-    if rig_scene_path:
+    rig_reference_data = None
+
+    if rig_scene_path and reference_rig:
+        report_step(
+            progress_callback,
+            "STEP 1/8 - REFERENCING AUTO-RIG SCENE"
+        )
+
+        rig_reference_data = reference_rig_scene(
+            rig_scene_path
+        )
+
+    elif rig_scene_path:
         report_step(
             progress_callback,
             "STEP 1/8 - OPENING AUTO-RIG SCENE"
         )
 
-        rig_scene_path = os.path.normpath(rig_scene_path)
+        rig_scene_path = os.path.normpath(
+            rig_scene_path
+        )
 
         if not os.path.exists(rig_scene_path):
             raise RuntimeError(
@@ -909,6 +968,10 @@ def run_animation_bake_pipeline(
         "rig_scene_path": rig_scene_path,
         "animation_fbx_path": animation_fbx_path,
         "output_scene_path": output_scene_path,
+
+        "reference_rig": reference_rig,
+        "rig_reference_data": rig_reference_data,
+
         "char": char,
         "rig": rig,
         "IK_data": IK_data,

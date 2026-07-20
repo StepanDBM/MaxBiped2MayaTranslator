@@ -34,6 +34,8 @@ def build_ui(project_root):
     # Backwards compatibility if some old code still reads fileList.
     global fileList
 
+    global referenceRigCheckBox
+
     global logHost
     global progressControl
     global statusLabel
@@ -313,7 +315,15 @@ def build_ui(project_root):
         command=lambda *args: batchConvProc.process_conversion_batch(
             ui_state,
             rigBuildPipeline.run_backend_pipeline
-        )
+        ),
+        parent=buttonForm
+    )
+
+    bakeAnimRow = cmds.rowLayout(
+        numberOfColumns=2,
+        adjustableColumn=1,
+        columnWidth2=(360, 120),
+        parent=buttonForm
     )
 
     bakeAnimButton = cmds.button(
@@ -321,8 +331,17 @@ def build_ui(project_root):
         height=45,
         command=lambda *args: batchAnimProc.process_animation_batch(
             ui_state
-        )
+        ),
+        parent=bakeAnimRow
     )
+
+    referenceRigCheckBox = cmds.checkBox(
+        label="Referencing",
+        value=True,
+        parent=bakeAnimRow
+    )
+
+    cmds.setParent(buttonForm)
 
     cmds.formLayout(
         buttonForm,
@@ -332,13 +351,13 @@ def build_ui(project_root):
             (buildRigButton, "left", 0),
             (buildRigButton, "bottom", 0),
 
-            (bakeAnimButton, "top", 0),
-            (bakeAnimButton, "right", 0),
-            (bakeAnimButton, "bottom", 0),
+            (bakeAnimRow, "top", 0),
+            (bakeAnimRow, "right", 0),
+            (bakeAnimRow, "bottom", 0),
         ],
         attachPosition=[
             (buildRigButton, "right", 4, 50),
-            (bakeAnimButton, "left", 4, 50),
+            (bakeAnimRow, "left", 4, 50),
         ]
     )
 
@@ -443,6 +462,8 @@ def build_ui(project_root):
 
         "sourceFileList": sourceFileList,
         "animationFileList": animationFileList,
+
+        "referenceRigCheckBox": referenceRigCheckBox,
 
         # temporary old key
         "fileList": sourceFileList,
